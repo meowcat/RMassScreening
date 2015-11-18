@@ -20,9 +20,6 @@ batchPick <- function(files, outputDir, polarity = c("+", "-"), writeData = TRUE
       f.neg <- f[which(unlist(lapply(f, function(scan) scan$metaData$polarity == "-")))]
       MSlist.neg <-readMSdata.direct(f.neg, MSlevel=c(1))
     }
-    message("", appendLF = TRUE)
-    
-    
     
     # (3) Partition the measurements now available in MSlist:
     message("Step 2 - agglomeration", appendLF = FALSE)
@@ -69,24 +66,24 @@ batchPick <- function(files, outputDir, polarity = c("+", "-"), writeData = TRUE
     {
       if(pos){
         MSlist <- MSlist.pos
-        save(MSlist, file=paste0(outputDir, basename(filepath.mzML), ".MSlist.pos.RData"))
+        save(MSlist, file=paste0(outputDir, "/", basename(filepath.mzML), ".MSlist.pos.RData"))
       }
       if(neg){
         MSlist <- MSlist.neg
-        save(MSlist, file=paste0(outputDir, basename(filepath.mzML), ".MSlist.neg.RData"))  
+        save(MSlist, file=paste0(outputDir, "/", basename(filepath.mzML), ".MSlist.neg.RData"))  
       }
     }
     if(writeList)
     {
       if(pos)
       {
-        writePeaklist(MSlist.pos,"results",
-                      filename= paste0(outputDir, ".MSlist.pos.csv", sep = ""))
+        writePeaklist(MSlist.pos,outputDir,
+                      filename= paste0(basename(filepath.mzML), ".MSlist.pos.csv", sep = ""))
       }
       if(neg)
       {
-        writePeaklist(MSlist.neg,"results",
-                      filename= paste0(outputDir, ".MSlist.neg.csv", sep = ""))
+        writePeaklist(MSlist.neg,outputDir,
+                      filename= paste0(basename(filepath.mzML), ".MSlist.neg.csv", sep = ""))
       }
     }
     message("Done.")
