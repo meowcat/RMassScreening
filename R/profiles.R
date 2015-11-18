@@ -33,6 +33,20 @@ fillProfiles <- function(dataDir, files, polarity="+")
   at<-0
   for(i in 1:leng){ 
     load(file=files[i]);
+    # A "backwards compatibility" fix:
+    if(!exists("MSlist", environment()))
+    {
+      if(exists("MSlist.pos", environment()))
+      {
+        MSlist <- MSlist.pos
+        rm(MSlist.pos)
+      }
+      else if(exists("MSlist.neg", environment()))
+      {
+        MSlist <- MSlist.neg
+        rm(MSlist.neg)
+      }
+    }
     at<-c(at+length(MSlist[[8]][,1]))    
     rm(MSlist)
   }
@@ -41,6 +55,19 @@ fillProfiles <- function(dataDir, files, polarity="+")
   da1<-1;
   for(i in 1:leng){ 
     load(file=files[i]);
+    if(!exists("MSlist", environment()))
+    {
+      if(exists("MSlist.pos", environment()))
+      {
+        MSlist <- MSlist.pos
+        rm(MSlist.pos)
+      }
+      else if(exists("MSlist.neg", environment()))
+      {
+        MSlist <- MSlist.neg
+        rm(MSlist.neg)
+      }
+    }
     peaklist<-MSlist[[8]];
     
     peaklist<-cbind(peaklist,peaklist[,c(1,4,5)])
