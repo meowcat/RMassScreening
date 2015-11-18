@@ -123,6 +123,8 @@ groupSummaries <- function(
     message(sampleGroups[ngroup, "sampleGroup"])
     cond <- sampleGroups[ngroup, cond.total]
     names(cond) <- cond.total
+    cond <- as.vector(as.matrix(cond))
+    cond <- strsplit(cond, ",")
     arglist <- list(sampleList=sampleList, sampleAssignment=sampleAssignment)
     arglist <- c(arglist, cond)
     sampleIndices <- do.call(sampleSelector, arglist)
