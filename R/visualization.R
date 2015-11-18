@@ -9,7 +9,7 @@ erb <- function(x,y,sd,eps,...)
 }
 
 #' @export
-runViewer <- function(totalTable, hits, timepoints, sampleGroups)
+runViewer <- function(totalTable, hits, timepoints, sampleGroups, ...)
 {
   fe <- environment()
   
@@ -17,26 +17,39 @@ runViewer <- function(totalTable, hits, timepoints, sampleGroups)
   tt.hits <- tt.hits.all[1:2000,]
   
   
-  filterText <- "
-#tt.hits <- tt.hits[tt.hits$t0.mixed < 1e5,]
-tt.hits <- tt.hits[(tt.hits$mean.synSN + tt.hits$mean.chlSN + tt.hits$mean.mcySN)
-                           > (tt.hits$mean.synCTL + tt.hits$mean.chlCTL + tt.hits$mean.mcyCTL) * 10,]
-tt.hits <- tt.hits[(tt.hits$mean.synSN + tt.hits$mean.chlSN + tt.hits$mean.mcySN) > tt.hits$mean.WC * 7,]
-tt.hits <- tt.hits[(tt.hits$mean.synSN + tt.hits$mean.chlSN + tt.hits$mean.mcySN) > 3e5,]
-
-#tt.hits <- tt.hits[grepl(\"AZY\",tt.hits$name),]
-
-tt.hits <- tt.hits[order(tt.hits$mean.synSN + tt.hits$mean.chlSN + tt.hits$mean.mcySN, decreasing = TRUE),]
-
-"
+#   filterText <- "
+# #tt.hits <- tt.hits[tt.hits$t0.mixed < 1e5,]
+# tt.hits <- tt.hits[(tt.hits$mean.synSN + tt.hits$mean.chlSN + tt.hits$mean.mcySN)
+#                            > (tt.hits$mean.synCTL + tt.hits$mean.chlCTL + tt.hits$mean.mcyCTL) * 10,]
+# tt.hits <- tt.hits[(tt.hits$mean.synSN + tt.hits$mean.chlSN + tt.hits$mean.mcySN) > tt.hits$mean.WC * 7,]
+# tt.hits <- tt.hits[(tt.hits$mean.synSN + tt.hits$mean.chlSN + tt.hits$mean.mcySN) > 3e5,]
+# 
+# #tt.hits <- tt.hits[grepl(\"AZY\",tt.hits$name),]
+# 
+# tt.hits <- tt.hits[order(tt.hits$mean.synSN + tt.hits$mean.chlSN + tt.hits$mean.mcySN, decreasing = TRUE),]
+# 
+# "
   
   profileNames <- paste0(tt.hits$name, " (", round(tt.hits$mz,4), "/", round(tt.hits$RT / 60,1),")")
   profileList <- tt.hits$profileIDs
   names(profileList) <- profileNames
   
-  
+  updateFilterList <- function(se, session)
+  {
+    if(length(se$filterList) > 0)
+    {
+      afList <- 1:length(se$filterList)
+      names(afList) <- unlist(lapply(se$filterList, renderFilter))
+    } 
+    else
+      afList <- c()
+    updateSelectInput(session, "activeFilters", choices=afList)
+  }
   
   server <- function(input, output, session) {
+    
+    filterList <- list()
+    se <- environment()
     
     observe({
       f <- input$profileFilter
@@ -51,14 +64,16 @@ tt.hits <- tt.hits[order(tt.hits$mean.synSN + tt.hits$mean.chlSN + tt.hits$mean.
     })
     
     
+    # On click on the filterApply button: go through the filter list and apply each one to tt.hits. Then update the list of profiles
     observe({
-      i <- input$filterApply
-      if(i>0)
-      {
+      input$filterApply
+      isolate({
         fe$tt.hits <- tt.hits.all
         tt.hits <- fe$tt.hits
         # execute the filter
-        isolate(eval(parse(text=input$filter)))
+        for(filter in filterList)
+          tt.hits <- applyFilter(tt.hits, filter)
+        
         # safety measure to prevent super slowdowns
         if(nrow(tt.hits) > 2000)
           fe$tt.hits <- tt.hits[1:2000,,drop=FALSE]
@@ -71,9 +86,91 @@ tt.hits <- tt.hits[order(tt.hits$mean.synSN + tt.hits$mean.chlSN + tt.hits$mean.
         names(fe$profileList) <- fe$profileNames
         updateSelectInput(session, "profile", choices=fe$profileList)
         updateTextInput(session, "profileFilter", value="")
-      }
+      })
     })
     
+    #####################################
+    # Filter buttons and filter list
+    
+    # Add, delete
+    observe({
+      input$filterAdd
+      if(input$filterAdd == 0) return()
+      se$filterList <- c(se$filterList, list(list(type="empty")))
+      #print(se$filterList)
+      updateFilterList(se, session)
+      })
+    
+    observe({
+      input$filterDel
+      if(input$filterDel == 0) return()
+      isolate({
+        #print(input$activeFilters)
+        se$filterList <- se$filterList[-as.numeric(input$activeFilters)]
+        #print(se$filterList)
+        updateFilterList(se, session)
+        
+      })
+    })
+    
+    # download and upload filter files
+    output$filterSave <- downloadHandler(
+      filename = function() {
+        paste('filter-', Sys.Date(), '.RData', sep='')
+      },
+      content = function(con) {
+        filterList <- se$filterList
+        save(filterList, file=con)
+      }
+    )
+    
+    observe({
+        input$filterLoad
+        
+        inFile <- input$filterLoad
+        
+        if (is.null(inFile))
+          return(NULL)
+        
+        load(inFile$datapath)
+        se$filterList <- filterList
+        updateFilterList(se, session)
+        
+      })
+    
+    # clicking on the filter list updates the options set in the right panel
+    observe({
+      input$activeFilters
+      
+      if(length(input$activeFilters) == 0) return()
+      
+      isolate({
+        i <- as.numeric(input$activeFilters)
+        #print(se$filterList[[i]])
+        editFilter(session, as.list(se$filterList[[i]]))
+      })
+    })
+    
+    # clicking on any "save filter" options overwrites the currently selected filter with the new info    
+    observe({
+      input$updateOrder
+      input$updateRatioFilter
+      input$updateNameFilter
+      if(input$updateOrder+
+           input$updateRatioFilter+
+           input$updateNameFilter
+         == 0) return()
+      
+      isolate({
+        i <- as.numeric(input$activeFilters)
+        #print(getFilter(input))
+        se$filterList[[i]] <- as.list(getFilter(input))
+        updateFilterList(se, session)
+      })
+    })
+    
+    
+    # Plot
     output$profilePlot <- renderPlot({
       
       # find profile index in hits
@@ -88,21 +185,7 @@ tt.hits <- tt.hits[order(tt.hits$mean.synSN + tt.hits$mean.chlSN + tt.hits$mean.
     })
   }
   
-  ui <- fluidPage(
-      sidebarLayout(
-        sidebarPanel(
-          textInput("profileFilter", "Filter profiles:", ""),
-          selectInput("profile", "Profile:", profileList, size=20, selectize=FALSE),
-          checkboxGroupInput("samples", "Sample groups:", as.list(sampleGroups$sampleGroup))
-        ),
-        mainPanel(
-          tabsetPanel(
-            tabPanel("Visualize", plotOutput("profilePlot", width="600px", height="600px" )),
-            tabPanel("Filter", aceEditor("filter", filterText), actionButton("filterApply", "apply"))
-          ))
-      )
-    )
-  shinyApp(ui = ui, server = server)
+  runApp(shinyApp(ui = visualization.ui(colnames(tt.hits.all), profileList, sampleGroups), server = server), ...)
 }
 
 
@@ -113,6 +196,9 @@ tt.hits <- tt.hits[order(tt.hits$mean.synSN + tt.hits$mean.chlSN + tt.hits$mean.
 plotProfile <- function(profiles, profiles.all, hit, sampleGroups, selectedGroups, timepoints)
 {
   par(lwd=1.5)
+  
+  if(is.na(hit)) return()
+  if(is.null(hit)) return()
   
   
   col.samples <- sampleGroups$color
@@ -150,7 +236,51 @@ plotProfile <- function(profiles, profiles.all, hit, sampleGroups, selectedGroup
   titles <- profiles.all[which(profiles.all$profileIDs == row[[1]]), "name"]
   titles <- paste(titles, collapse=", ")
   title(main=titles, sub=paste0(round(profiles[hit, "mz"],4), " / ", round(profiles[hit, "RT"] / 60,1)))
-  legend("topleft", legend=selectedGroups, fill=col.samples[selectedGroups],
-         bty="n")
+  if(length(selectedGroups) > 0)
+    legend("topleft", legend=selectedGroups, fill=col.samples[selectedGroups],
+           bty="n")
 }
 
+
+
+visualization.ui <- function(filterCols, profileList, sampleGroups)
+  
+  fluidPage(
+  sidebarLayout(
+    sidebarPanel(
+      conditionalPanel("input.tab =='visualize'",
+                       
+                       textInput("profileFilter", "Filter profiles:", ""),
+                       selectInput("profile", "Profile:", profileList, size=20, selectize=FALSE),
+                       checkboxGroupInput("samples", "Sample groups:", as.list(sampleGroups$sampleGroup))
+      ),
+      
+      conditionalPanel("input.tab == 'buildFilter'",
+                       selectInput("activeFilters", "Active filter list", c(), size=20, selectize=FALSE),
+                       fluidRow(
+                         column(3, actionButton("filterDel", "delete")),
+                         column(3, actionButton("filterAdd", "add")),
+                         column(3, actionButton("filterApply", "apply")),
+                         column(3, downloadButton("filterSave", "save"))
+                         
+                       ),
+                       fluidRow(
+                         column(12, fileInput("filterLoad", "load"))
+                       )
+      )
+    ),
+    mainPanel(
+      tabsetPanel(id="tab",
+                  tabPanel("Visualize", value="visualize", 
+                           plotOutput("profilePlot", width="600px", height="600px" )),
+                  tabPanel("Build filter", value="buildFilter",
+                           tabsetPanel(id="filterType",
+                                       tabPanel("Ratio filter", value="ratioFilter", ratioFilterTab(filterCols)),
+                                       tabPanel("Name filter", value="nameFilter", nameFilterTab),
+                                       tabPanel("Order", value="order", orderTab(filterCols))
+                                       
+                                       
+                           ))
+      ))
+  )
+)
