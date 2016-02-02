@@ -9,7 +9,7 @@ erb <- function(x,y,sd,eps,...)
 }
 
 #' @export
-runViewer <- function(totalTable, hits, timepoints, sampleGroups, ...)
+runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NULL, addcols = 1, ...)
 {
   fe <- environment()
   
@@ -151,18 +151,34 @@ runViewer <- function(totalTable, hits, timepoints, sampleGroups, ...)
       })
     })
     
+    # clicking on "insert" in the literal filter tab inserts the column name to the end of the shinyAce editor
+    observe({
+      input$insertLiteral
+      if(input$insertLiteral == 0) return()
+      isolate({
+      updateAceEditor(session, "literalFilter", value=paste0(input$literalFilter, input$litFilterInsert))
+      })
+    })
+    
+    
     # clicking on any "save filter" options overwrites the currently selected filter with the new info    
     observe({
       input$updateOrder
       input$updateRatioFilter
       input$updateNameFilter
+      input$updateLiteralFilter
       if(input$updateOrder+
            input$updateRatioFilter+
-           input$updateNameFilter
+           input$updateNameFilter+
+          input$updateLiteralFilter
          == 0) return()
       
       isolate({
+        if(is.null(input$activeFilters))
+          return()
         i <- as.numeric(input$activeFilters)
+        if(i == 0)
+          return()
         #print(getFilter(input))
         se$filterList[[i]] <- as.list(getFilter(input))
         updateFilterList(se, session)
@@ -178,11 +194,32 @@ runViewer <- function(totalTable, hits, timepoints, sampleGroups, ...)
       #samples.s <- input$samples
       
       
-      plotProfile(tt.hits, tt.hits.all, hit, sampleGroups, input$samples, timepoints)
+      plotProfile(tt.hits, tt.hits.all, hit, sampleGroups, input$samples, timepoints, addcols)
       
       
       
     })
+    
+    # Plot
+    output$hitTable <- renderDataTable({
+      
+      # find profile index in hits
+      hit <- which(tt.hits.all$profileIDs == input$profile)
+      #samples.s <- input$samples
+      tt.hits.all[hit,c("mass", "name", "dppm", "mz", "RT", "int"),drop=FALSE]
+    })
+    output$patternTable <- renderDataTable({
+      p <- input$profile
+      if(is.null(patterns))
+        return(data.frame())
+      gid <- patterns[patterns[,"peak ID"] == p,"group ID"]
+      if(as.numeric(as.character(gid)) == 0)
+        return(patterns[c(),,drop=FALSE])
+      gp <- patterns[patterns[,"group ID"] == gid,,drop=FALSE]
+      gp
+    })
+  
+    
   }
   
   runApp(shinyApp(ui = visualization.ui(colnames(tt.hits.all), profileList, sampleGroups), server = server), ...)
@@ -192,8 +229,9 @@ runViewer <- function(totalTable, hits, timepoints, sampleGroups, ...)
 # in profiles, col 1 is the profile ID, 
 # cols 2:n are the datapoints: timepoints, sd(timepoints), additionalcalculatedcolumns like mean
 # finally the cols from the merging(mass, name, dppm, mz, RT, int)
+# addcols is the number of additional columns per sample group (default: mean, = 1 additional column)
 #' @export
-plotProfile <- function(profiles, profiles.all, hit, sampleGroups, selectedGroups, timepoints)
+plotProfile <- function(profiles, profiles.all, hit, sampleGroups, selectedGroups, timepoints, addcols = 1)
 {
   par(lwd=1.5)
   
@@ -212,7 +250,7 @@ plotProfile <- function(profiles, profiles.all, hit, sampleGroups, selectedGroup
     paste0(timepoints$name, ".sd"),
     "mean")
   
-  row <- as.numeric(profiles[hit,2:(nrow(sampleGroups)*(length(mat.rownames))+1)])
+  row <- as.numeric(profiles[hit,2:(nrow(sampleGroups)*(length(mat.rownames))+addcols)])
   mat <- as.data.frame(matrix(row, nrow=length(mat.rownames)))
   rownames(mat) <- mat.rownames
   colnames(mat) <- sampleGroups$sampleGroup
@@ -233,7 +271,7 @@ plotProfile <- function(profiles, profiles.all, hit, sampleGroups, selectedGroup
     points(timepoints[fsd,"t"], rep(0,length(fsd)), col=col.samples[spl], pch=pch.samples[spl])
   }
   
-  titles <- profiles.all[which(profiles.all$profileIDs == row[[1]]), "name"]
+  titles <- profiles.all[which(profiles.all$profileIDs == profiles[hit,1]), "name"]
   titles <- paste(titles, collapse=", ")
   title(main=titles, sub=paste0(round(profiles[hit, "mz"],4), " / ", round(profiles[hit, "RT"] / 60,1)))
   if(length(selectedGroups) > 0)
@@ -249,17 +287,17 @@ visualization.ui <- function(filterCols, profileList, sampleGroups)
   sidebarLayout(
     sidebarPanel(
       conditionalPanel("input.tab =='visualize'",
-                       
                        textInput("profileFilter", "Filter profiles:", ""),
                        selectInput("profile", "Profile:", profileList, size=20, selectize=FALSE),
-                       checkboxGroupInput("samples", "Sample groups:", as.list(sampleGroups$sampleGroup))
+                       checkboxGroupInput("samples", "Sample groups:", as.list(sampleGroups$sampleGroup), as.list(sampleGroups$sampleGroup))
+                       
       ),
       
       conditionalPanel("input.tab == 'buildFilter'",
                        selectInput("activeFilters", "Active filter list", c(), size=20, selectize=FALSE),
                        fluidRow(
                          column(3, actionButton("filterDel", "delete")),
-                         column(3, actionButton("filterAdd", "add")),
+                         column(2, actionButton("filterAdd", "add")),
                          column(3, actionButton("filterApply", "apply")),
                          column(3, downloadButton("filterSave", "save"))
                          
@@ -271,13 +309,25 @@ visualization.ui <- function(filterCols, profileList, sampleGroups)
     ),
     mainPanel(
       tabsetPanel(id="tab",
-                  tabPanel("Visualize", value="visualize", 
-                           plotOutput("profilePlot", width="600px", height="600px" )),
+                  tabPanel("Visualize", value="visualize",
+                           tabsetPanel(
+                             tabPanel("time series", 
+                                      plotOutput("profilePlot", width="600px", height="600px" )),
+                             tabPanel("data", 
+                                      verticalLayout(
+                                        dataTableOutput("hitTable"),
+                                        dataTableOutput("patternTable")
+                                      )
+                                      )
+                            )
+                           
+                           ),
                   tabPanel("Build filter", value="buildFilter",
                            tabsetPanel(id="filterType",
                                        tabPanel("Ratio filter", value="ratioFilter", ratioFilterTab(filterCols)),
                                        tabPanel("Name filter", value="nameFilter", nameFilterTab),
-                                       tabPanel("Order", value="order", orderTab(filterCols))
+                                       tabPanel("Order", value="order", orderTab(filterCols)),
+                                       tabPanel("Literal", value="literalFilter", literalFilterTab(filterCols))
                                        
                                        
                            ))

@@ -109,7 +109,7 @@ summarizeProfiles <- function(profiles, sampleList, sampleIndices, groupName, gr
 
 #' @export
 groupSummaries <- function(
-  profiles, sampleList, sampleAssignment, sampleGroups, ...
+  profiles, sampleList, sampleAssignment, sampleGroups, mock=FALSE, ...
   )
 {
   # find columns to use for sample selector
@@ -122,22 +122,26 @@ groupSummaries <- function(
   {
     message(sampleGroups[ngroup, "sampleGroup"])
     cond <- sampleGroups[ngroup, cond.total]
-    names(cond) <- cond.total
+    
     cond <- as.vector(as.matrix(cond))
     cond <- strsplit(cond, ",")
+    names(cond) <- cond.total
+    
     arglist <- list(sampleList=sampleList, sampleAssignment=sampleAssignment)
     arglist <- c(arglist, cond)
     sampleIndices <- do.call(sampleSelector, arglist)
     
-    
-    summarizeProfiles(profiles, sampleList, sampleIndices, sampleGroups[ngroup, "sampleGroup"], ...)
+    if(!mock)
+      summarizeProfiles(profiles, sampleList, sampleIndices, sampleGroups[ngroup, "sampleGroup"], ...)
+    else
+      sampleList[sampleIndices,,drop=FALSE]
   })
   names(tt.extracted) <- sampleGroups$sampleGroup
   return(tt.extracted)
 }
 
 #' @export
-mergeGroups <- function(profiles, groupList, summaries)
+mergeGroups <- function(profiles, sampleGroups, summaries)
 {
   tt.total <- data.frame( profileIDs = profiles[[7]][,"profile_ID"], stringsAsFactors = FALSE )
   for(ngroup in 1:nrow(sampleGroups))

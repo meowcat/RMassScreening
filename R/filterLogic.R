@@ -92,12 +92,18 @@ renderNameFilter <- function(filter)
         filter$name)
 }
 
+renderLiteralFilter <- function(filter)
+{
+  paste0("\"", filter$expression, "\"")
+}
+
 
 renderFilter <- function(filter)
 {
   if(filter$type == "name") return(renderNameFilter(filter))
   if(filter$type == "order") return(renderOrder(filter))
   if(filter$type == "ratio") return(renderRatioFilter(filter))
+  if(filter$type == "literal") return(renderLiteralFilter(filter))
   if(filter$type == "empty") return("[empty]")
 }
 
@@ -107,6 +113,7 @@ applyFilter <- function(df, filter)
   if(filter$type == "name") return(applyNameFilter(df, filter))
   if(filter$type == "order") return(applyOrder(df, filter))
   if(filter$type == "ratio") return(applyRatioFilter(df, filter))
+  if(filter$type == "literal") return(applyLiteralFilter(df, filter))
   if(filter$type == "empty") return(df)
   stop("filter type is undefined")
 }
@@ -116,6 +123,7 @@ getFilter <- function(input)
   if(input$filterType == "ratioFilter") return(getRatioFilter(input))
   if(input$filterType == "order") return(getOrder(input))
   if(input$filterType == "nameFilter") return(getNameFilter(input))
+  if(input$filterType == "literalFilter") return(getLiteralFilter(input))
   return(list(type="empty"))
 }
 
@@ -125,19 +133,53 @@ editFilter <- function(session, filter)
   if(filter$type == "name") editNameFilter(session, filter)
   if(filter$type == "order") editOrder(session, filter)
   if(filter$type == "ratio") editRatioFilter(session, filter)
+  if(filter$type == "literal") editLiteralFilter(session, filter)
 }
 
+
+
+getLiteralFilter <- function(input)
+{
+  list(type="literal", expression=input$literalFilter)
+}
+
+editLiteralFilter <- function(session, filter)
+{
+  updateTabsetPanel(session, "filterType", selected="literalFilter")
+  updateAceEditor(session, "literalFilter", value=filter$expression)
+}
+
+applyLiteralFilter <- function(df, filter)
+{
+  df[with(df, eval(parse(text=filter$expression))),,drop=FALSE]
+}
+
+
+
+literalFilterTab <- function(filterCols)
+{
+  fluidRow(
+    column(8,
+           aceEditor("literalFilter", mode = "r"),
+           actionButton("updateLiteralFilter", "Save")),
+    column(4,
+           selectInput("litFilterInsert", "Column", filterCols, multiple=FALSE, selectize=FALSE,size=20),
+           actionButton("insertLiteral", "Insert")
+    ))
+}
+
+  
 
 
 
 ratioFilterTab <- function(filterCols)
   fluidRow(
-  column(5, selectInput("filterLHS", "Column sum", filterCols, multiple=TRUE, selectize=FALSE)),
+  column(5, selectInput("filterLHS", "Column sum", filterCols, multiple=TRUE, selectize=FALSE,size=20)),
   column(2, selectInput("filterOperator", "Operator", c(">", "<"), selectize=FALSE),
          numericInput("filterRatio", "Filter ratio", 1,0.001, 1000),
          actionButton("updateRatioFilter", "Save filter")
   ),
-  column(5, selectInput("filterRHS", "Column sum", filterCols, multiple=TRUE, selectize=FALSE))
+  column(5, selectInput("filterRHS", "Column sum", filterCols, multiple=TRUE, selectize=FALSE,size=20))
 )
 
 nameFilterTab <- verticalLayout(
@@ -146,7 +188,7 @@ nameFilterTab <- verticalLayout(
 
 orderTab <- function(filterCols)
   verticalLayout(
-  selectInput("orderCol", "Column sum", filterCols, multiple=TRUE, selectize=FALSE),
+  selectInput("orderCol", "Column sum", filterCols, multiple=TRUE, selectize=FALSE,size=20),
   selectInput("orderDir", "Direction", c("ascending" = 1, "descending" = -1)),
   actionButton("updateOrder", "Save filter")
 )

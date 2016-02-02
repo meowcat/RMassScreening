@@ -9,7 +9,7 @@ countCharOccurrences <- function(char, s) {
 #' such as "oh-deme"
 #'
 #' @export
-combineReactions <- function(substances, reactions)
+combineReactions <- function(substances, reactions, sep=" ", omit.name="")
 {
   par.peaks <- data.frame(mz = substances$mass, rt=0, into=0)
   rownames(par.peaks) <- substances$name
@@ -27,14 +27,18 @@ combineReactions <- function(substances, reactions)
   
   act <- subset(reactions.comb,reactions.comb[,"active"]!="")
   x <- act[,"name"]
-  
+  x[x==omit.name] <- ""
   
   
   # calculate!
   options <- data.frame(matrix(NA, ncol = nrow(act), nrow = nrow(par.peaks)))
   for(k in 1:nrow(act)){
     for(j in 1:nrow(par.peaks)) {
-      options[j,k] <- paste(rownames(par.peaks[j,]), x[k])}
+      if(x[k] != "")
+        options[j,k] <- paste(rownames(par.peaks[j,]), x[k], sep=sep)
+      else
+        options[j,k] <- rownames(par.peaks[j,])
+    }
   }
   
   option.masses <- data.frame(matrix(NA, ncol = nrow(act), nrow = nrow(par.peaks)))

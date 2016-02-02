@@ -7,4 +7,4 @@ Author: Michael A. Stravs <stravsmi@eawag.ch>
 Maintainer: Michael A. Stravs <stravsmi@eawag.ch>
 Description: More about what it does (maybe more than one line)
 License: Artistic-2.0
-Depends: enviPick, enviMass, shiny, shinyAce
+Depends: enviPick, enviMass, shiny, shinyAce, parallel
