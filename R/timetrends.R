@@ -64,17 +64,20 @@ summarizeProfiles <- function(profiles, sampleList, sampleIndices, groupName, gr
   
   # build a full combination of all sample table entries and all profileIDs so each mean and SD is computed from the same length vectors
   # and zerofill
-  profiles.complete <- merge(expand.grid(profileIDs = unique(profiles.ss$profileIDs),
-                                         sampleIDs = unique(sampleList[sampleIndices,"sampleIDs"]))
-                             , profiles.ss, all.x=TRUE)
-  profiles.complete[is.na(profiles.complete$intensity), "intensity"] <- 0
+  
+  # This has now changed, since it is done "properly" in assignSamples
+  
+  # profiles.complete <- merge(expand.grid(profileIDs = unique(profiles.ss$profileIDs),
+  #                                        sampleIDs = unique(sampleList[sampleIndices,"sampleIDs"]))
+  #                            , profiles.ss, all.x=TRUE)
+  # profiles.complete[is.na(profiles.complete$intensity), "intensity"] <- 0
   
   # group by the summary variable
   groupFormula <- as.formula(paste("intensity ~ profileIDs + ", groupBy))
   
-  tt.sd <- as.data.frame(unclass(xtabs(groupFormula, do.call(aggregate, list(groupFormula, data=profiles.complete,
-                                                               FUN=sd)))))
-  tt.mean <- as.data.frame(unclass(xtabs(groupFormula, do.call(aggregate, list(groupFormula, data=profiles.complete,
+  tt.sd <- as.data.frame(unclass(xtabs(groupFormula, do.call(aggregate, list(groupFormula, data=profiles.ss,
+                                                               FUN=sd)), na.action=na.pass)))
+  tt.mean <- as.data.frame(unclass(xtabs(groupFormula, do.call(aggregate, list(groupFormula, data=profiles.ss,
                                                                              FUN=mean)))))  
 #   
   #tt.sd <- as.data.frame(unclass(xtabs(intensity ~ profileIDs + time, aggregate(intensity ~ profileIDs + time, data=profiles.complete,

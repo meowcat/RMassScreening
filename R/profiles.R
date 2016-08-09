@@ -1,12 +1,16 @@
 
 #' @export
-fillProfiles <- function(dataDir, files, polarity="+")
+fillProfiles <- function(dataDir, files, polarity="+", pattern=NA)
 {
-  if(polarity == "+")
-    pattern <- ".MSlist.pos.RData"
+  if(is.na(pattern))
+  {
+    if(polarity == "+")
+      pattern <- ".MSlist.pos.RData"
+    else
+      pattern <- ".MSlist.neg.RData"
+  }
   else
-    pattern <- ".MSlist.neg.RData"
-  
+    pattern <- paste0(".MSlist.", pattern, ".RData")
   #
   # Set up an enviMass "profiles" container.
   #

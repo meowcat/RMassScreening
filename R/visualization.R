@@ -319,9 +319,18 @@ visualization.ui <- function(filterCols, profileList, sampleGroups)
                                         dataTableOutput("patternTable")
                                       )
                                       )
+#                              ,
+#                              tabPanel("cluster",
+#                                       verticalLayout(
+#                                         actionButton("findClusters", "Find clusters"),
+#                                         numericInput("rttolCluster", "RT tolerance", 30),
+#                                         dataTableOutput("clusterTable")
+#                                       )
+                               
+                             )
                             )
                            
-                           ),
+                           ,
                   tabPanel("Build filter", value="buildFilter",
                            tabsetPanel(id="filterType",
                                        tabPanel("Ratio filter", value="ratioFilter", ratioFilterTab(filterCols)),

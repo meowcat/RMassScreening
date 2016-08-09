@@ -16,9 +16,20 @@ assignSamples <- function(files, sampleList)
 }
 
 #' @export
-assignProfiles <- function(profiles, sampleList)
+assignProfiles <- function(profiles, sampleList, zerofill = FALSE)
 {
+  
+  if(zerofill)
+  {
+    profiles.complete <- merge(expand.grid(profileIDs = unique(profiles[[2]][,"profileIDs"]),
+                                           sampleIDs = unique(sampleList[,"sampleIDs"]))
+                               , profiles[[2]], all.x=TRUE, all.y=TRUE)
+    profiles.complete[is.na(profiles.complete$intensity), "intensity"] <- 0
+    profiles[[2]] <- profiles.complete
+  }
+  
   profiles[[2]] <- qmerge(profiles[[2]], sampleList, by="sampleIDs", all.x=TRUE)
+  
   return(profiles)
 }
 
