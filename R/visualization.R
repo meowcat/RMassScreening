@@ -8,10 +8,24 @@ erb <- function(x,y,sd,eps,...)
   segments(x-eps,y+sd,x+eps,y+sd,...)
 }
 
+# 
+#
+#' @param totalTable 
+#'
+#' @param hits 
+#' @param timepoints 
+#' @param sampleGroups 
+#' @param patterns 
+#' @param clusters RAMClust output converted into suitable input by rcProcess()
+#' @param addcols 
+#' @param ... 
+#'
 #' @export
-runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NULL, addcols = 1, ...)
+runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NULL, clusters = NULL, addcols = 1, ...)
 {
   fe <- environment()
+  values <- reactiveValues()
+  values$pinList <- c()
   
   tt.hits.all <- merge(totalTable, hits, by.x="profileIDs", by.y="profileID")
   tt.hits <- tt.hits.all[1:2000,]
@@ -29,6 +43,13 @@ runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NUL
 # tt.hits <- tt.hits[order(tt.hits$mean.synSN + tt.hits$mean.chlSN + tt.hits$mean.mcySN, decreasing = TRUE),]
 # 
 # "
+  
+  # split RAMClust clusters into spectra
+  if(!is.null(clusters))
+  {
+    clusters <- merge(clusters, hits[,c("profileID", "name", "mass", "dppm")], all.x=TRUE)
+    spectra <- split(clusters, clusters$featureID)
+  }
   
   profileNames <- paste0(tt.hits$name, " (", round(tt.hits$mz,4), "/", round(tt.hits$RT / 60,1),")")
   profileList <- tt.hits$profileIDs
@@ -88,6 +109,110 @@ runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NUL
         updateTextInput(session, "profileFilter", value="")
       })
     })
+    
+    ### Pinned profiles list: 
+    # Pin profile button adds / removes profile ID from pin list
+    # pinnedProfiles data table lists mz/rt/profile ID of pinned profiles
+    # exportPinned exports that table as csv (WIP)
+    #### Pin profile button
+    observe({
+      input$pin
+      if(input$pin == 0)
+        return(c())
+      values$pinList <- isolate({
+        
+        prof <- input$profile
+        matchPos <- match(prof, values$pinList)
+        if(!is.na(matchPos))
+          li <- values$pinList[-matchPos]
+        else
+          li <- c(values$pinList, prof)
+        li
+      })
+    })
+    
+    observe({
+      hit <- which(tt.hits.all$profileIDs %in% values$pinList)
+      values$pinnedProfiles <- tt.hits.all[hit,c("profileIDs", "mass", "name", "dppm", "mz", "RT", "int"),drop=FALSE]
+    })
+    
+    # pinned profiles download
+    output$exportPinned <- reactive({values$pinnedProfiles})
+    # pinned profiles table
+    output$pinnedProfiles <- renderDataTable(values$pinnedProfiles)
+    
+  #   values$pinnedProfiles <- reactive({
+  #     # find profile index in hits
+  #     values$pinList
+  #     message(paste(values$pinList, collapse=" "))
+  #     hits <- match(values$pinList, tt.hits.all$profileIDs)
+  #     message(paste(hits, collapse=" "))
+  #     tt.hits.all[hits,c("mass", "name", "dppm", "mz", "RT", "int"),drop=FALSE]
+  #   })
+  #   
+  #   output$pinnedProfiles <- renderDataTable(reactive({
+  #     values$pinList
+  #     message(paste(values$pinList, collapse=" "))
+  #     hits <- match(values$pinList, tt.hits.all$profileIDs)
+  #     message(paste(hits, collapse=" "))
+  #     tt.hits.all[hits,c("mass", "name", "dppm", "mz", "RT", "int"),drop=FALSE]
+  # }))
+    #output$pinList <- renderText(tt.hits.all[values$pinList,])
+    
+    
+    #####################################
+    # RAMClust data
+    clusterTable <- reactive({
+      p <- input$profile
+      if(is.null(clusters)) return(data.frame())
+      isolate({
+        row <- match(p, rcAssignment$profileID)
+        fid <- rcAssignment[row,"featureID"]
+        if(fid != 0)
+        {
+          sp <- (spectra[[as.character(fid)]])
+          sp$int <- signif(sp$int, 3)
+          sp$dmz <- sp$mz - rcAssignment[row, "mz"]
+          sp$mz <- round(sp$mz, 4)
+          sp$dmz <- round(sp$dmz, 4)
+          sp$profint <- signif(sp$profint, 3)
+          sp$RT <- round(sp$RT/60,2)
+          sp$profRT <- round(sp$profRT,1)
+          sp <- sp[,c("featureID", "profileID", "name", "mz", "dmz", "int", "profint", "RT", "profRT")]
+          sp
+        }
+          
+        else
+          return(data.frame())
+      })
+    })
+    
+    output$clusterTable <- renderDataTable(clusterTable())
+    
+    output$clusterPlot <- renderPlot(
+      {
+        spec <- clusterTable()
+        if(nrow(spec) == 0)
+        {
+          plot.new()
+          return()
+        }
+        plot.new()
+        plot.window(xlim=range(spec$mz)+c(-10,10), ylim=range(0, spec$int))
+        axis(1)
+        axis(2)
+        isolate({
+          p <- input$profile
+          peak <- spec[spec$profileID == p,]
+          abline(v=peak$mz, col="red")
+        })
+        
+        lines(spec$mz, spec$int, type="h", col="blue", lwd=2)
+        
+      }
+    )
+    
+    
     
     #####################################
     # Filter buttons and filter list
@@ -242,8 +367,23 @@ plotProfile <- function(profiles, profiles.all, hit, sampleGroups, selectedGroup
   col.samples <- sampleGroups$color
   names(col.samples) <- sampleGroups$sampleGroup
   
-  pch.samples <- sampleGroups$pch
+  if("pch" %in% colnames(sampleGroups))
+    pch.samples <- sampleGroups$pch
+  else
+    pch.samples <- rep(1, nrow(sampleGroups))
   names(pch.samples) <- sampleGroups$sampleGroup
+  
+  if("lwd" %in% colnames(sampleGroups))
+    lwd.samples <- sampleGroups$lwd
+  else
+    lwd.samples <- rep(1, nrow(sampleGroups))
+  names(lwd.samples) <- sampleGroups$sampleGroup
+  
+  if("lty" %in% colnames(sampleGroups))
+    lty.samples <- sampleGroups$lty
+  else
+    lty.samples <- rep(1, nrow(sampleGroups))
+  names(lty.samples) <- sampleGroups$sampleGroup
   
   mat.rownames <- c(
     timepoints$name,
@@ -264,7 +404,8 @@ plotProfile <- function(profiles, profiles.all, hit, sampleGroups, selectedGroup
   #yshift <- c(sample=0, mix1=100, mix2=200, ctl=300, wc=400)
   for(spl in selectedGroups)
   {
-    lines(timepoints$t, mat.mean[,spl], col=col.samples[spl], pch=pch.samples[spl], type="b")
+    lines(timepoints$t, mat.mean[,spl], col=col.samples[spl], pch=pch.samples[spl],
+          lwd = lwd.samples[spl], lty = lty.samples[spl], type="b")
     erb(timepoints$t, mat.mean[,spl], mat.sd[,spl], 0.1, col=col.samples[spl])
     # mark inexistent SDs!
     fsd <- which(mat.sd[,spl] == -1)
@@ -289,6 +430,7 @@ visualization.ui <- function(filterCols, profileList, sampleGroups)
       conditionalPanel("input.tab =='visualize'",
                        textInput("profileFilter", "Filter profiles:", ""),
                        selectInput("profile", "Profile:", profileList, size=20, selectize=FALSE),
+                       actionButton("pin", "pin profile"),
                        checkboxGroupInput("samples", "Sample groups:", as.list(sampleGroups$sampleGroup), as.list(sampleGroups$sampleGroup))
                        
       ),
@@ -319,14 +461,13 @@ visualization.ui <- function(filterCols, profileList, sampleGroups)
                                         dataTableOutput("patternTable")
                                       )
                                       )
-#                              ,
-#                              tabPanel("cluster",
-#                                       verticalLayout(
-#                                         actionButton("findClusters", "Find clusters"),
-#                                         numericInput("rttolCluster", "RT tolerance", 30),
-#                                         dataTableOutput("clusterTable")
-#                                       )
-                               
+                             ,
+                             tabPanel("cluster",
+                                      verticalLayout(
+                                        plotOutput("clusterPlot"),
+                                        dataTableOutput("clusterTable")
+                                      )
+                             )
                              )
                             )
                            
@@ -339,7 +480,13 @@ visualization.ui <- function(filterCols, profileList, sampleGroups)
                                        tabPanel("Literal", value="literalFilter", literalFilterTab(filterCols))
                                        
                                        
-                           ))
+                           )),
+                tabPanel("Pinned", value="pinned",
+                         dataTableOutput("pinnedProfiles"),
+                         #textOutput("pinList"),
+                         downloadButton("exportPinned", "Export")#,
+                         #actionButton("importPinned", "Import")
+                         )
       ))
   )
 )

@@ -29,6 +29,26 @@ makeProfileMatrix <- function(profiles)
 
 
 
+#' Process RAMClust output for viewer
+#'
+#' @param RC Result from RAMClust call
+#'
+#' @return a dataframe
+#' @export
+#'
+#' @examples
+processRc <- function(RC, profile)
+{
+  rcAssignment <- data.frame(RC$fmz, RC$featclus, RC$frt, RC$msint)
+  
+  colnames(rcAssignment) <-  c("profileID", "featureID", "RT", "int")
+  rcAssignment$mz <- profile[[7]][match(rcAssignment$profileID, profile[[7]][,"profile_ID"]), "mean_mz"]
+  rcAssignment$profint <- profile[[7]][match(rcAssignment$profileID, profile[[7]][,"profile_ID"]), "mean_int"]
+  rcAssignment$profRT <- profile[[7]][match(rcAssignment$profileID, profile[[7]][,"profile_ID"]), "mean_RT"]
+  rcAssignment <- rcAssignment[order(rcAssignment$mz),]
+  rcAssignment
+}
+
 #' Quick RAMClustR application
 #'
 #' @param profileID The profile you want to look up (integer)
@@ -89,4 +109,13 @@ quickclust <- function(profileID, profiles, rttol = 60, raw=FALSE, profileMatrix
   
 }
 
+submatrix <- function(rt, profiles, rttol = 60)
+  {
 
+    profileIDs <- which(abs(profiles[[7]][,"mean_RT"] - rt) < rttol/2)
+    profiles[[7]] <- profiles[[7]][profileIDs,,drop=FALSE]
+    profiles[[2]] <- profiles[[2]][profiles[[2]][,"profileIDs"] %in% profileIDs,,drop=FALSE]
+    ti <- system.time(profileMatrix <- makeProfileMatrix(profiles))
+    cat(paste("Time for building profile matrix:", round(ti[[3]],2), "\r\n"))
+    return(profileMatrix)
+}

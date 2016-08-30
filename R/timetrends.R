@@ -62,15 +62,27 @@ summarizeProfiles <- function(profiles, sampleList, sampleIndices, groupName, gr
   # remove all datapoints that are not associated to a profile
   profiles.ss <- profiles.ss[profiles.ss$profileIDs != 0,,drop=FALSE]
   
+  #browser()
   # build a full combination of all sample table entries and all profileIDs so each mean and SD is computed from the same length vectors
   # and zerofill
   
-  # This has now changed, since it is done "properly" in assignSamples
+  # Note: the original problem here was thet the zerofill rows didn't have the merged sample information from 
+  # sample assignment, and therefore didn't merge with the correct groups!
+  # (20160817; problem was noted around 201605 when the zerofill was moved to the profile filling step)
   
-  # profiles.complete <- merge(expand.grid(profileIDs = unique(profiles.ss$profileIDs),
-  #                                        sampleIDs = unique(sampleList[sampleIndices,"sampleIDs"]))
-  #                            , profiles.ss, all.x=TRUE)
-  # profiles.complete[is.na(profiles.complete$intensity), "intensity"] <- 0
+  profiles.complete <- merge(expand.grid(profileIDs = unique(profiles.ss$profileIDs),
+                                          sampleIDs = unique(sampleList[sampleIndices,"sampleIDs"])),
+                            profiles.ss, all.x=TRUE)
+  profiles.split <- split(profiles.complete, is.na(profiles.complete$intensity))
+  # fill "informative" colums for grouping:
+  cols.sub <- intersect(colnames(profiles.complete), colnames(sampleList))
+  profiles.split[["FALSE"]][,cols.sub] <- sampleList[match(profiles.split[["FALSE"]]$sampleIDs, sampleList$sampleIDs), cols.sub]
+  profiles.complete <- rbind(profiles.split[["TRUE"]], profiles.split[["FALSE"]])
+  
+  profiles.complete[is.na(profiles.complete$intensity), "intensity"] <- 0
+  
+  # all sample IDs:
+  #sampleIDs <- unique(sampleList[sampleIndices, ])
   
   # group by the summary variable
   groupFormula <- as.formula(paste("intensity ~ profileIDs + ", groupBy))
