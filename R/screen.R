@@ -42,8 +42,10 @@ ppm <- function(mz, ppmlimit) (1e-6 * mz * ppmlimit)
 #' "suspects" is a suspect list and must contain a "mass" column. Additionally a "name" column is useful
 #' (though not formally required)
 #' @export
-screenProfiles <- function(profiles, suspects, polarity = "+", ppmLimit = 2)
+screenProfiles <- function(profiles, suspects, polarity = "+", ppmLimit = getOption("RMassScreening")$screenProfiles$ppmLimit)
 {
+  if(is.null(ppmLimit))
+    stop("No ppm limit specified. Specify either as a parameter or in your settings file.")
   potential <- suspects
   peaklist <- as.data.frame(profiles[[7]])
   if(polarity == "+")

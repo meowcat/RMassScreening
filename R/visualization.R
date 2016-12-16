@@ -9,12 +9,22 @@ erb <- function(x,y,sd,eps,...)
 }
 
 #' @export
-runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NULL, addcols = 1, ...)
+runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NULL, addcols = 1, ...
+                      settings = getOption("RMassScreening"))
 {
   fe <- environment()
   
+  hitsLimit <- settings$viewer$hitsLimit
+  if(is.null(hitsLimit))
+  {
+    warning("Parameter hitsLimit not set. Defaulting to 2000")
+    hitsLimit <- 2000
+  }
+  
   tt.hits.all <- merge(totalTable, hits, by.x="profileIDs", by.y="profileID")
-  tt.hits <- tt.hits.all[1:2000,]
+  tt.hits <- tt.hits.all[min(
+    seq_len(hitsLimit)
+    nrow(tt.hits.all)),]
   
   
 #   filterText <- "
@@ -75,8 +85,8 @@ runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NUL
           tt.hits <- applyFilter(tt.hits, filter)
         
         # safety measure to prevent super slowdowns
-        if(nrow(tt.hits) > 2000)
-          fe$tt.hits <- tt.hits[1:2000,,drop=FALSE]
+        if(nrow(tt.hits) > hitsLimit)
+          fe$tt.hits <- tt.hits[seq_len(hitsLimit),,drop=FALSE]
         else
           fe$tt.hits <- tt.hits
         
