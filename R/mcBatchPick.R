@@ -78,3 +78,23 @@ mcBatchPick <- function(files, outputDir, polarity = c("+", "-"), writeData = TR
   }, outputDir=outputDir, polarity=polarity, writeData=writeData, writeList=writeList)
   ,finally=stopCluster(cl))
 }
+
+mcComprehensiveBatchPick <- function(files, outputDir, writeData, writeList,
+                                             log="logCluster.txt", no_cores = 6)
+{
+  
+  
+  # Initiate cluster
+  cl <- makeCluster(no_cores, outfile = log)
+  
+  clusterEvalQ(cl, library(enviPick))
+  clusterEvalQ(cl, library(RMassScreening))
+  
+  tryCatch(
+    parLapply(cl, files, function(file, outputDir, writeData, writeList)
+    {
+      comprehensiveBatchPick(file, outputDir, writeData, writeList)
+    },outputDir=outputDir, writeData=writeData, writeList=writeList)
+    ,finally=stopCluster(cl))
+}
+    
