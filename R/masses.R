@@ -61,15 +61,104 @@ combineReactions <- function(substances, reactions, sep=" ", omit.name="")
 }
 
 
+#' Combine reactions using molecular formula, not mass.
+#' 
+#' Expects two data frames with columns mass, name.
+#' Note that the "reactions" dataframe will have dash-separated names,
+#' such as "oh-deme"
+#'
 #' @export
-consolidateReactions <- function(reactions)
+combineReactions.formula <- function(substances, reactions, sep=" ", omit.name="")
 {
-  potential.u <- unique(reactions$mass)
-  potential.opt <- unlist(lapply(potential.u, function(mz)
+  par.peaks <- data.frame(formula = substances$formula, rt=0, into=0)
+  rownames(par.peaks) <- substances$name
+  
+  # Use only the rows for which there is a formula entry
+  par.peaks <- par.peaks[!is.na(par.peaks$formula) & (par.peaks$formula != ""),]
+  
+  # Consolidate reactions such that no mass is duplicate:
+  # for multiply occurring reactions, the one with least "-" in the name is taken.
+  
+  #reactions.comb <- consolidateReactions.formula(reactions)
+  
+  # generate table for Jen's functions
+  reactions.comb <- reactions
+  reactions.comb$active <- "x"
+
+  act <- subset(reactions.comb,reactions.comb[,"active"]!="")
+  act <- reactions.comb[!is.na(reactions.comb$formula)& (reactions.comb$formula != ""),]
+  
+  x <- act[,"name"]
+  x[x==omit.name] <- ""
+  
+  
+  
+  
+  # calculate!
+  options <- data.frame(matrix(NA, ncol = nrow(act), nrow = nrow(par.peaks)))
+  for(k in 1:nrow(act)){
+    for(j in 1:nrow(par.peaks)) {
+      if(x[k] != "")
+        options[j,k] <- paste(rownames(par.peaks[j,]), x[k], sep=sep)
+      else
+        options[j,k] <- rownames(par.peaks[j,])
+    }
+  }
+  
+  option.masses <- data.frame(matrix(NA, ncol = nrow(act), nrow = nrow(par.peaks)))
+  rownames(option.masses) <- rownames(par.peaks)
+  colnames(option.masses) <- act[,"name"]
+  
+  for(k in 1:nrow(act)){
+    for(j in 1:nrow(par.peaks)) {
+      option.masses[j,k] <- add.formula(par.peaks[j,"formula"], act[k,"formula"])
+  }}
+  
+  potential <- as.vector(as.matrix(option.masses))
+  names(potential) <- as.vector(as.matrix(options))
+  
+  potential.comb <- data.frame(formula=potential, name=names(potential), stringsAsFactors = FALSE)
+  potential.comb <- convertFormulas(potential.comb)
+  
+  # Consolidate the reactions again such that multistep reactions are replaced by single-step reactions
+  #potential.clean <- consolidateReactions(potential.comb)
+  return(potential.comb)
+}
+
+
+#' @export
+consolidateReactions <- function(reactions, eps = 0.0002, sep="-")
+{
+  n <- 1
+  while(n < nrow(reactions))
   {
-    p.names <- reactions[reactions$mass == mz, "name"]
-    p.name <- p.names[[which.min(countCharOccurrences("-", p.names))]]
-  }))
-  potential.clean <- data.frame(mass=potential.u, name=potential.opt, stringsAsFactors = FALSE)
-  return(potential.clean)
+    mz <- reactions$mass[[n]]
+    equivalent <- which(abs(reactions$mass- mz) <= eps)
+    rNames <- reactions$name[equivalent]
+    if(length(rNames) > 1)
+    {
+      rName <- which.min(countCharOccurrences(sep, rNames))
+      reactions <- reactions[-equivalent[-rName],,drop=FALSE]
+    }
+    n <- n+1
+  }
+  return(reactions)
+}
+
+convertFormulas <- function(substances)
+{
+  toConvert <- which(substances$formula != "")
+  for(i in toConvert)
+  {
+    substances[i, "mass"] <- findMz.formula(substances[i, "formula"], "")$mzCenter
+  }
+  return(substances)
+}
+
+mergeSuspects <- function(massSuspects, formulaSuspects)
+{
+  allSuspects <- merge(massSuspects, formulaSuspects, all=TRUE, by="name", suffixes=c("",".f"))
+  allSuspects$mass[!is.na(allSuspects$mass.f)]  <- allSuspects$mass.f[!is.na(allSuspects$mass.f)]
+  allSuspects$mass.f <- NULL
+  allSuspects
 }
