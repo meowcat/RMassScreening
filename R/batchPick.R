@@ -122,10 +122,25 @@ batchPick <- function(files, outputDir, polarity = c("+", "-"), writeData = TRUE
 
 
 #' @export
-comprehensiveBatchPick <- function(files, outputDir, writeData = TRUE, writeList = TRUE, settings=getOption("RMassScreening")$enviPick)
+comprehensiveBatchPick <- function(files, outputDir, writeData = TRUE, writeList = TRUE, settings=getOption("RMassScreening")$enviPick,
+                                   multicore = FALSE, log = "logCluster.txt")
 {
- 
-  
+  if(multicore)
+  {
+    # Initiate cluster
+    cl <- makeCluster(multicore, outfile = log)
+    
+    clusterEvalQ(cl, library(enviPick))
+    clusterEvalQ(cl, library(RMassScreening))
+    
+    tryCatch(
+      parLapply(cl, files, function(file, outputDir, writeData, writeList, settings)
+      {
+        comprehensiveBatchPick(file, outputDir, writeData, writeList, settings)
+      },outputDir=outputDir, writeData=writeData, writeList=writeList, settings=settings)
+      ,finally=stopCluster(cl))
+    return()
+  }
   
   for(filepath.mzML in files)
   {

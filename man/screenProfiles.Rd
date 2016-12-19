@@ -6,7 +6,8 @@
 "suspects" is a suspect list and must contain a "mass" column. Additionally a "name" column is useful
 (though not formally required)}
 \usage{
-screenProfiles(profiles, suspects, polarity = "+", ppmLimit = 2)
+screenProfiles(profiles, suspects, polarity = "+",
+  ppmLimit = getOption("RMassScreening")$screenProfiles$ppmLimit)
 }
 \description{
 "profiles" is a profiles container

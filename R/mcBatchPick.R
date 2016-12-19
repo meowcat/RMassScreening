@@ -79,6 +79,20 @@ mcBatchPick <- function(files, outputDir, polarity = c("+", "-"), writeData = TR
   ,finally=stopCluster(cl))
 }
 
+
+#' Multicore batch pick
+#'
+#' @param files 
+#' @param outputDir 
+#' @param writeData 
+#' @param writeList 
+#' @param log 
+#' @param no_cores 
+#'
+#' @return
+#' @export
+#'
+#' @examples
 mcComprehensiveBatchPick <- function(files, outputDir, writeData, writeList,
                                              log="logCluster.txt", no_cores = 6)
 {

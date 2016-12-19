@@ -8,15 +8,15 @@ erb <- function(x,y,sd,eps,...)
   segments(x-eps,y+sd,x+eps,y+sd,...)
 }
 
-# 
-#
+#' Run the results viewer
+#'
 #' @param totalTable 
 #'
 #' @param hits 
 #' @param timepoints 
 #' @param sampleGroups 
 #' @param patterns 
-#' @param clusters RAMClust output converted into suitable input by rcProcess()
+#' @param clusters RAMClust output converted into suitable input by \code{\link{rcProcess}}
 #' @param addcols 
 #' @param ... 
 #'
@@ -36,7 +36,7 @@ runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NUL
   
   tt.hits.all <- merge(totalTable, hits, by.x="profileIDs", by.y="profileID")
   tt.hits <- tt.hits.all[min(
-    seq_len(hitsLimit)
+    seq_len(hitsLimit),
     nrow(tt.hits.all)),]
   
   
