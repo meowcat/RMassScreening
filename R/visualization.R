@@ -36,8 +36,8 @@ runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NUL
   
   tt.hits.all <- merge(totalTable, hits, by.x="profileIDs", by.y="profileID")
   tt.hits <- tt.hits.all[min(
-    seq_len(hitsLimit)
-    nrow(tt.hits.all)),]
+    seq_len(hitsLimit),
+    nrow(tt.hits.all))]
   
   
 #   filterText <- "
