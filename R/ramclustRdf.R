@@ -16,8 +16,8 @@ makeProfileMatrix <- function(profiles)
   profiles[[2]] <- profiles[[2]][profiles[[2]][,"profileIDs"] != 0,,drop=FALSE]
   profiles[[7]] <- profiles[[7]][profiles[[7]][,"profile_ID"] != 0,,drop=FALSE]
   
-  allProfiles <- xtabs(intensity ~ sampleIDs + profileIDs , data=profiles[[2]])
-  allProfiles <- unclass(allProfiles)
+  allProfiles <- acast(profiles[[2]], sampleIDs ~ profileIDs, value.var="intensity",
+                       fill = 0)
   
   featureTitle <- paste0(profiles[[7]][,"profile_ID"], "_", round(profiles[[7]][,15],2))
   dimnames(allProfiles) <- list(

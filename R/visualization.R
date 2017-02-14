@@ -21,7 +21,8 @@ erb <- function(x,y,sd,eps,...)
 #' @param ... 
 #'
 #' @export
-runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NULL, clusters = NULL, addcols = 1, settings = getOption("RMassScreening"), ...)
+runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NULL, clusters = NULL, addcols = 1, settings = getOption("RMassScreening"), 
+                      profiles = NULL, files = NULL, ...)
 {
   fe <- environment()
   values <- reactiveValues()
@@ -326,12 +327,7 @@ runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NUL
       # find profile index in hits
       hit <- match(input$profile,tt.hits$profileIDs)
       #samples.s <- input$samples
-      
-      
       plotProfile(tt.hits, tt.hits.all, hit, sampleGroups, input$samples, timepoints, addcols)
-      
-      
-      
     })
     
     # Plot
@@ -352,7 +348,27 @@ runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NUL
       gp <- patterns[patterns[,"group ID"] == gid,,drop=FALSE]
       gp
     })
-  
+    
+    # show files including the profile
+    output$peaksTable <- renderDataTable({
+      if(is.null(profiles))
+         return(data.frame())
+      if(is.null(files))
+        return(data.frame())
+      
+      hitPeaks <- with(profiles, peaks[
+        peaks$profileIDs == input$profile,
+        ])
+      hitPeaks <- hitPeaks[order(hitPeaks$intensity, decreasing = TRUE),]
+      hitPeaks <- hitPeaks[,c("filename", "intensity", "m/z",  "RT")]
+      #files[grepl(hitPeaks$filename)]
+      
+      hitPeaks$file <- files[
+        unlist(lapply(hitPeaks$filename, 
+                      function(f) grep(f, files)))]
+      hitPeaks$file <- shQuote(hitPeaks$file)
+      hitPeaks
+    }, options=list(rownames=FALSE))
     
   }
   
@@ -399,10 +415,14 @@ plotProfile <- function(profiles, profiles.all, hit, sampleGroups, selectedGroup
     paste0(timepoints$name, ".sd"),
     "mean")
   
+  # extract the entire row from the profiles table containing data for all samples,
+  # then reformat as a DF (from original format a.t1, a.t2, a.tN, a.t1.sd, a.t2.sd,
+  # a.tN.sd, a.mean, b.t1 etc)
   row <- as.numeric(profiles[hit,2:(nrow(sampleGroups)*(length(mat.rownames))+addcols)])
   mat <- as.data.frame(matrix(row, nrow=length(mat.rownames)))
   rownames(mat) <- mat.rownames
   colnames(mat) <- sampleGroups$sampleGroup
+  # split into DF with mean values (top) and SDs (bottom)
   mat.mean <- mat[1:nrow(timepoints),]
   mat.sd <- mat[nrow(timepoints) + (1:nrow(timepoints)),]
   
@@ -411,6 +431,8 @@ plotProfile <- function(profiles, profiles.all, hit, sampleGroups, selectedGroup
   axis(1)
   axis(2)
   #yshift <- c(sample=0, mix1=100, mix2=200, ctl=300, wc=400)
+  
+  # The groups are now rows in the mat.mean and mat.sd matrix; plot lines and SD bars by row.
   for(spl in selectedGroups)
   {
     lines(timepoints$t, mat.mean[,spl], col=col.samples[spl], pch=pch.samples[spl],
@@ -421,6 +443,7 @@ plotProfile <- function(profiles, profiles.all, hit, sampleGroups, selectedGroup
     points(timepoints[fsd,"t"], rep(0,length(fsd)), col=col.samples[spl], pch=pch.samples[spl])
   }
   
+  # collect all corresponding suspect hits, since more than one suspect can be a hit for a profile
   titles <- profiles.all[which(profiles.all$profileIDs == profiles[hit,1]), "name"]
   titles <- paste(titles, collapse=", ")
   title(main=titles, sub=paste0(round(profiles[hit, "mz"],4), " / ", round(profiles[hit, "RT"] / 60,1)))
@@ -430,12 +453,18 @@ plotProfile <- function(profiles, profiles.all, hit, sampleGroups, selectedGroup
 }
 
 
-
+# UI is generated at runtime when running the app
+# The sidebar has two conditional panels that are shown depending on the tab 
+# selected in the main panel,
+# the main panel is separated into tabs:
+# * profile display (with subtabs: plot, data, RAMClust results)
+# * filter building (with sub-UIs for the filter types)
 visualization.ui <- function(filterCols, profileList, sampleGroups)
   
   fluidPage(
   sidebarLayout(
     sidebarPanel(
+      
       conditionalPanel("input.tab =='visualize'",
                        textInput("profileFilter", "Filter profiles:", ""),
                        selectInput("profile", "Profile:", profileList, size=20, selectize=FALSE),
@@ -463,12 +492,14 @@ visualization.ui <- function(filterCols, profileList, sampleGroups)
                   tabPanel("Visualize", value="visualize",
                            tabsetPanel(
                              tabPanel("time series", 
-                                      plotOutput("profilePlot", width="600px", height="600px" )),
+                                      plotOutput("profilePlot", width="600px", height="600px",
+                                                 click="profilePlotClick")
+                             ),
                              tabPanel("data", 
                                       verticalLayout(
                                         dataTableOutput("hitTable"),
-                                        dataTableOutput("patternTable")
-                                      )
+                                        dataTableOutput("patternTable"),
+                                        dataTableOutput("peaksTable")                                      )
                                       )
                              ,
                              tabPanel("cluster",
@@ -487,8 +518,6 @@ visualization.ui <- function(filterCols, profileList, sampleGroups)
                                        tabPanel("Name filter", value="nameFilter", nameFilterTab),
                                        tabPanel("Order", value="order", orderTab(filterCols)),
                                        tabPanel("Literal", value="literalFilter", literalFilterTab(filterCols))
-                                       
-                                       
                            )),
                 tabPanel("Pinned", value="pinned",
                          dataTableOutput("pinnedProfiles"),

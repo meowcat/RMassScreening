@@ -113,7 +113,7 @@ computeProfiles <- function(profiles, dmass=3, dret=60)
     from=FALSE,
     to=FALSE,
     progbar=FALSE,
-    plotit=FALSE
+    plot_it=FALSE
   )
   return(profiles)
 }

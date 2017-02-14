@@ -13,5 +13,7 @@ Depends:
     shiny,
     shinyAce,
     parallel,
-    RAMClustR
+    RAMClustR,
+    plyr,
+    reshape2
 RoxygenNote: 5.0.1
