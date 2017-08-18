@@ -11,7 +11,7 @@
 #' @export
 #'
 #' @examples
-makeProfileMatrix <- function(profiles)
+makeProfileMatrix <- function(profiles, type = c("ramclust", "graphviz"))
 {
   profiles[[2]] <- profiles[[2]][profiles[[2]][,"profileIDs"] != 0,,drop=FALSE]
   profiles[[7]] <- profiles[[7]][profiles[[7]][,"profile_ID"] != 0,,drop=FALSE]
@@ -20,6 +20,13 @@ makeProfileMatrix <- function(profiles)
                        fill = 0)
   
   featureTitle <- paste0(profiles[[7]][,"profile_ID"], "_", round(profiles[[7]][,15],2))
+  
+  # for graphViz processing, add the RT as first observation
+  if(type[[1]]=="graphviz")
+  {
+    rt <- round(profiles[[7]][,15],2)
+    allProfiles <- rbind(rt, allProfiles)
+  }
   dimnames(allProfiles) <- list(
     1:nrow(allProfiles),
     featureTitle
