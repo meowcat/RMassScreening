@@ -58,7 +58,7 @@ sampleSelector <- function(sampleList, sampleAssignment, ...)
 summarizeProfiles <- function(profiles, sampleList, sampleIndices, groupName, groupBy = "time", groups = NA)
 {
   # select all profiles from samples which are in the selected samples group
-  profiles.ss <- profiles[[2]][profiles[[2]][,"sampleIDs"] %in% sampleList[sampleIndices, "sampleIDs"],,drop=FALSE]
+  profiles.ss <- profiles$peaks[profiles$peaks[,"sampleIDs"] %in% sampleList[sampleIndices, "sampleIDs"],,drop=FALSE]
   # remove all datapoints that are not associated to a profile
   profiles.ss <- profiles.ss[profiles.ss$profileIDs != 0,,drop=FALSE]
   
@@ -158,7 +158,7 @@ groupSummaries <- function(
 #' @export
 mergeGroups <- function(profiles, sampleGroups, summaries)
 {
-  tt.total <- data.frame( profileIDs = profiles[[7]][,"profile_ID"], stringsAsFactors = FALSE )
+  tt.total <- data.frame( profileIDs = profiles$index_prof[,"profile_ID"], stringsAsFactors = FALSE )
   for(ngroup in 1:nrow(sampleGroups))
   {
     colnames(summaries[[ngroup]]) <-   paste(colnames(summaries[[ngroup]]), sampleGroups[ngroup, "sampleGroup"], sep=".")

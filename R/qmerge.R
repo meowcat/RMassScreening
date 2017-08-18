@@ -1,6 +1,4 @@
 
-# profiles[[2]] <- merge(profiles[[2]], sampleAssigned, by="sampleIDs", all.x=TRUE, sort=FALSE)
-
 # Merge function which deals with simple tables (i.e. they have 0-1 y datasets per x dataset and only one column to merge by.)
 # 
 

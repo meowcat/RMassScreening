@@ -21,14 +21,14 @@ assignProfiles <- function(profiles, sampleList, zerofill = FALSE)
   
   if(zerofill)
   {
-    profiles.complete <- merge(expand.grid(profileIDs = unique(profiles[[2]][,"profileIDs"]),
+    profiles.complete <- merge(expand.grid(profileIDs = unique(profiles$peaks[,"profileIDs"]),
                                            sampleIDs = unique(sampleList[,"sampleIDs"]))
-                               , profiles[[2]], all.x=TRUE, all.y=TRUE)
+                               , profiles$peaks, all.x=TRUE, all.y=TRUE)
     profiles.complete[is.na(profiles.complete$intensity), "intensity"] <- 0
-    profiles[[2]] <- profiles.complete
+    profiles$peaks <- profiles.complete
   }
   
-  profiles[[2]] <- qmerge(profiles[[2]], sampleList, by="sampleIDs", all.x=TRUE)
+  profiles$peaks <- qmerge(profiles$peaks, sampleList, by="sampleIDs", all.x=TRUE)
   
   return(profiles)
 }
@@ -47,7 +47,7 @@ screenProfiles <- function(profiles, suspects, polarity = "+", ppmLimit = getOpt
   if(is.null(ppmLimit))
     stop("No ppm limit specified. Specify either as a parameter or in your settings file.")
   potential <- suspects
-  peaklist <- as.data.frame(profiles[[7]])
+  peaklist <- as.data.frame(profiles$index_prof)
   if(polarity == "+")
     potential$mass <- potential$mass + 1.0072
   else 

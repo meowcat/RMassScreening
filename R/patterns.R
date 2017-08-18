@@ -2,7 +2,7 @@
 #' @export
 getPatterns <- function(profiles)
 {
-  peaklist <- as.data.frame(profiles[[7]][,c(14,16,15)])
+  peaklist <- as.data.frame(profiles$index_prof[,c(14,16,15)])
   data(OrbitrapXL_VelosPro_R60000at400_q)
   isos <- make.isos(isotopes, use_isotopes = c("13C","15N","34S","37Cl","81Br"), use_charges=c(1,1,1,1,1))
   data(isotopes)
