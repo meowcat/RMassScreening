@@ -1,9 +1,19 @@
-##' readMSdata.direct
-##' 
-##' Creates a MSlist object directly from a readMzXmlFile list (i.e. allows for manipulating the list beforehand)
-##' Otherwise c/p from enviPick::readMSdata() 
-##'
-##'
+#' readMSdata.direct
+#' 
+#' Creates a MSlist object directly from a readMzXmlFile list (i.e. allows for manipulating the list beforehand)
+#' Otherwise c/p from enviPick::readMSdata() 
+#'
+#' @param mz1 mzXML raw object to extract from (as read by [readMzXmlFile])
+#' @param MSlevel MS level to extract
+#' @param progbar progress bar, as [readMSdata]
+#' @param minRT RT lower bound to extract
+#' @param maxRT RT upper bound to extract
+#' @param minmz m/z lower bound to extract
+#' @param maxmz m/z upper bound to extract
+#' @return MSlist object for peak picking with enviPick
+#' 
+#' @md
+#' @author stravsmi, mostly copied from Martin Loos
 #' @export
 readMSdata.direct <- 
   function (mz1, MSlevel = c(1), progbar = FALSE, minRT = FALSE, 

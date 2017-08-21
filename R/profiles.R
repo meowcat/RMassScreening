@@ -22,7 +22,7 @@
 #' @return A profile container in enviMass format.
 #' 
 #' 
-#' @author stravsmi
+#' @author stravsmi, mostly copied from Martin Loos
 #' @export
 #' @md
 fillProfiles <- function(dataDir, files, polarity="+", pattern=NA, rtrange=c(-Inf, Inf)) 

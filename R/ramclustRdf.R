@@ -9,6 +9,7 @@
 #' mz for calculation and therefore the content is arbitrary. It's easier to use the profile ID for precise lookup.)
 #' 
 #' @export
+#' @md
 #'
 #' @examples
 makeProfileMatrix <- function(profiles, type = c("ramclust", "graphviz"), addIndex = TRUE)

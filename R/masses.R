@@ -3,11 +3,22 @@ countCharOccurrences <- function(char, s) {
   return (nchar(s) - nchar(s2))
 }
 
+#' Combinatorially apply transformations
 #' 
-#' Expects two data frames with columns mass, name.
-#' Note that the "reactions" dataframe will have dash-separated names,
-#' such as "oh-deme"
+#' `combineReactions` applies `reactions` specified as mass differences to `substances` specified as exact masses.
+#' `combineReactions.formula` applies `reactions` specified as formula differences (e.g. `C2H-2O1`) to
+#'  `substances` specified as chemical formulas.
+#' 
+#' For `combineReactions.formula`, all combinations where one of two formulas is not specified are omitted.
+#' 
+#' @param substances Data frame with column `name` and mandatory column `mass` (`combineReactions`) or `formula`  (`combineReactions.formula`).
+#' @param reactions
+#' @param sep
+#' @param omit.name A reaction name which should be omitted in the combined reaction, such as "parent"
+#' 
+#' Expects two data frames with columns mass, name. Combines 
 #'
+#' @md
 #' @export
 combineReactions <- function(substances, reactions, sep=" ", omit.name="")
 {
@@ -19,13 +30,11 @@ combineReactions <- function(substances, reactions, sep=" ", omit.name="")
   reactions.comb <- consolidateReactions(reactions)
   
   # generate table for Jen's functions
-  reactions.comb$active <- "x"
   reactions.comb$massdiff <- NULL
   for(i in 1:nrow(reactions.comb)){
     reactions.comb$massdiff[i] <- reactions.comb$mass[i]
   }
   
-  act <- subset(reactions.comb,reactions.comb[,"active"]!="")
   x <- act[,"name"]
   x[x==omit.name] <- ""
   
@@ -61,12 +70,8 @@ combineReactions <- function(substances, reactions, sep=" ", omit.name="")
 }
 
 
-#' Combine reactions using molecular formula, not mass.
+#' @describeIn combineReactions
 #' 
-#' Expects two data frames with columns mass, name.
-#' Note that the "reactions" dataframe will have dash-separated names,
-#' such as "oh-deme"
-#'
 #' @export
 combineReactions.formula <- function(substances, reactions, sep=" ", omit.name="")
 {
@@ -82,11 +87,8 @@ combineReactions.formula <- function(substances, reactions, sep=" ", omit.name="
   #reactions.comb <- consolidateReactions.formula(reactions)
   
   # generate table for Jen's functions
-  reactions.comb <- reactions
-  reactions.comb$active <- "x"
 
-  act <- subset(reactions.comb,reactions.comb[,"active"]!="")
-  act <- reactions.comb[!is.na(reactions.comb$formula)& (reactions.comb$formula != ""),]
+  act <- reactions[!is.na(reactions$formula)& (reactions$formula != ""),]
   
   x <- act[,"name"]
   x[x==omit.name] <- ""
@@ -126,6 +128,20 @@ combineReactions.formula <- function(substances, reactions, sep=" ", omit.name="
 }
 
 
+#' Merge reactions with identical mass differences
+#' 
+#' Merges reactions with identical mass difference within `eps` to avoid creating duplicate reaction products.
+#' Of multiple reactions, the "simplest" one will be kept, i.e. if one is already combined (contains a separator as specified
+#' by `sep` and the other is not, the "shorter" path will be kept. 
+#' 
+#' @param reactions Data frame with `name` and `mass`.
+#' @param eps Merging margin, absolute
+#' @param sep Reaction separator token to filter/count for priority
+#' @return 
+#' 
+#' @author stravsmi
+#' @md
+#' 
 #' @export
 consolidateReactions <- function(reactions, eps = 0.0002, sep="-")
 {
@@ -145,6 +161,16 @@ consolidateReactions <- function(reactions, eps = 0.0002, sep="-")
   return(reactions)
 }
 
+#' Convert formulas to masses
+#' 
+#' Calculates the monoisotopic exact masses from formulas. 
+#' 
+#' @param substances a data.frame with column `formula` and existing column `mass`.
+#' @return Data frame with overwritten column `mass`.
+#' 
+#' @author stravsmi
+#' @md
+#' @export
 convertFormulas <- function(substances)
 {
   toConvert <- which(substances$formula != "")
@@ -155,6 +181,19 @@ convertFormulas <- function(substances)
   return(substances)
 }
 
+#' Merge suspect lists
+#' 
+#' Merges suspect lists generated from formula calculations and from mass calculations.
+#' If formula results are present, they take priority over mass results. Note that formula results must first be
+#' converted to masses using [convertFormulas].
+#' 
+#' @param massSuspects data frame with `name`,`mass` columns
+#' @param formulaSuspects data frame with `name`,`mass` columns 
+#' @returnType 
+#' @return 
+#' 
+#' @author stravsmi
+#' @export
 mergeSuspects <- function(massSuspects, formulaSuspects)
 {
   allSuspects <- merge(massSuspects, formulaSuspects, all=TRUE, by="name", suffixes=c("",".f"))
