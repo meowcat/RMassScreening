@@ -4,10 +4,15 @@
 \alias{makeProfileMatrix}
 \title{Make matrix for use with ramclustR.df}
 \usage{
-makeProfileMatrix(profiles)
+makeProfileMatrix(profiles, type = c("ramclust", "graphviz"),
+  addIndex = TRUE)
 }
 \arguments{
 \item{profiles}{A profiles object from enviMass}
+
+\item{type}{\code{ramclust} or \code{graphviz}, in the latter case the retention time is inserted as a first row (not only in the column names).}
+
+\item{addIndex}{If \code{TRUE}, add a sample index column in front of the table, as required by RAMClust.}
 }
 \value{
 A matrix m x n, where the rows (sic) are the samples and the columns are the profiles (features) without "profile 0".
@@ -17,4 +22,3 @@ mz for calculation and therefore the content is arbitrary. It's easier to use th
 \description{
 Make matrix for use with ramclustR.df
 }
-

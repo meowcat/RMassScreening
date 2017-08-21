@@ -2,17 +2,18 @@
 % Please edit documentation in R/screen.R
 \name{assignSamples}
 \alias{assignSamples}
-\title{"files" must be the files list in the same order they were used when building profiles.
-"sampleList" needs a filename column
-The filename from sampleList is coordinated with a "sampleIDs" ID from profiles via the "files" list,
-and the rest of the sampleList table is merged into it.}
+\title{Map a sample list to sample IDs}
 \usage{
 assignSamples(files, sampleList)
 }
+\arguments{
+\item{files}{must be the files list in the same order they were used when building profiles.}
+
+\item{sampleList}{data frame with a \code{filename} column}
+}
 \description{
-"files" must be the files list in the same order they were used when building profiles.
-"sampleList" needs a filename column
+Merges the \code{sampleList} with the corresponding enviMass sample ID (which is the position of a name in the \code{files} array.)
+
 The filename from sampleList is coordinated with a "sampleIDs" ID from profiles via the "files" list,
 and the rest of the sampleList table is merged into it.
 }
-

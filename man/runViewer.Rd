@@ -6,7 +6,7 @@
 \usage{
 runViewer(totalTable, hits, timepoints, sampleGroups, patterns = NULL,
   clusters = NULL, addcols = 1, settings = getOption("RMassScreening"),
-  ...)
+  profiles = NULL, files = NULL, ...)
 }
 \arguments{
 \item{totalTable}{}
@@ -19,13 +19,12 @@ runViewer(totalTable, hits, timepoints, sampleGroups, patterns = NULL,
 
 \item{patterns}{}
 
-\item{clusters}{RAMClust output converted into suitable input by \code{\link{rcProcess}}}
+\item{clusters}{Optional RAMClust output converted into suitable input by \code{\link{rcProcess}}}
 
-\item{addcols}{}
+\item{addcols}{Number of additional columns per sample group present in summarized (totalTable) output. This is 1 if regular processing (adding the mean) is used.}
 
 \item{...}{}
 }
 \description{
 Run the results viewer
 }
-

@@ -15,4 +15,3 @@ a dataframe
 \description{
 Process RAMClust output for viewer
 }
-

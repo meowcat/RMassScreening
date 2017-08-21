@@ -2,16 +2,23 @@
 % Please edit documentation in R/screen.R
 \name{screenProfiles}
 \alias{screenProfiles}
-\title{"profiles" is a profiles container
-"suspects" is a suspect list and must contain a "mass" column. Additionally a "name" column is useful
-(though not formally required)}
+\title{Screen for suspect masses in a profile container.}
 \usage{
 screenProfiles(profiles, suspects, polarity = "+",
   ppmLimit = getOption("RMassScreening")$screenProfiles$ppmLimit)
 }
-\description{
-"profiles" is a profiles container
-"suspects" is a suspect list and must contain a "mass" column. Additionally a "name" column is useful
-(though not formally required)
-}
+\arguments{
+\item{profiles}{a profiles container}
 
+\item{suspects}{A data frame that must contain a "mass" column. Additionally a "name" column is useful (though not formally required)}
+
+\item{polarity}{"+" or "-", determining what mass to look for}
+
+\item{ppmLimit}{Maximal ppm deviation from target mass}
+}
+\description{
+Simple screening looking for suspect exact masses in enviMass profiles.
+}
+\details{
+Could be improved.
+}

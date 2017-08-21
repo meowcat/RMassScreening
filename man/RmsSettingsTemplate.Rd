@@ -12,4 +12,3 @@ RmsSettingsTemplate(target = "settings.ini")
 \description{
 Create RMassScreening settings template file
 }
-

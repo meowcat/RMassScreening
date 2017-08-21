@@ -2,15 +2,34 @@
 % Please edit documentation in R/masses.R
 \name{combineReactions}
 \alias{combineReactions}
-\title{Expects two data frames with columns mass, name.
-Note that the "reactions" dataframe will have dash-separated names,
-such as "oh-deme"}
+\alias{combineReactions.formula}
+\title{Combinatorially apply transformations}
 \usage{
 combineReactions(substances, reactions, sep = " ", omit.name = "")
+
+combineReactions.formula(substances, reactions, sep = " ", omit.name = "")
+}
+\arguments{
+\item{substances}{Data frame with column \code{name} and mandatory column \code{mass} (\code{combineReactions}) or \code{formula}  (\code{combineReactions.formula}).}
+
+\item{reactions}{Data frame with column \code{name} and mandatory column \code{mass} (\code{combineReactions}) or \code{formula}  (\code{combineReactions.formula}).}
+
+\item{sep}{Separator between combined reaction names (e.g. \code{oh} and \code{deme} with separator \code{-} get combined to \code{oh-deme})}
+
+\item{omit.name}{A reaction name which should be omitted in the combined reaction, such as "parent"
+
+Expects two data frames with columns mass, name. Combines}
 }
 \description{
-Expects two data frames with columns mass, name.
-Note that the "reactions" dataframe will have dash-separated names,
-such as "oh-deme"
+\code{combineReactions} applies \code{reactions} specified as mass differences to \code{substances} specified as exact masses.
+\code{combineReactions.formula} applies \code{reactions} specified as formula differences (e.g. \code{C2H-2O1}) to
+\code{substances} specified as chemical formulas.
 }
+\details{
+For \code{combineReactions.formula}, all combinations where one of two formulas is not specified are omitted.
+}
+\section{Functions}{
+\itemize{
+\item \code{combineReactions.formula}: 
+}}
 

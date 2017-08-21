@@ -24,6 +24,5 @@ a \code{data.frame} (\code{profileID, mz, RT, int}) with the "pseudospectrum" at
        (using the pseudo-sum-intensity from RAMClustR)
 }
 \description{
-Quick RAMClustR application
+Applies RAMClustR to a small subset of all profiles that are in the retention time window around a specific profile of interest.
 }
-

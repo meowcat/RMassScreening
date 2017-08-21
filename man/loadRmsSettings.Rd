@@ -12,4 +12,3 @@ loadRmsSettings(file)
 \description{
 Load RMassScreening settings
 }
-

@@ -1,7 +1,7 @@
 Package: RMassScreening
 Type: Package
 Title: Suspect screening and time series in LC-HRMS data
-Version: 0.1
+Version: 0.2
 Date: 2015-11-04
 Author: Michael A. Stravs <stravsmi@eawag.ch>
 Maintainer: Michael A. Stravs <stravsmi@eawag.ch>
@@ -16,4 +16,4 @@ Depends:
     RAMClustR,
     plyr,
     reshape2
-RoxygenNote: 5.0.1
+RoxygenNote: 6.0.1

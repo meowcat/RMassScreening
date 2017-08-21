@@ -7,8 +7,28 @@
 readMSdata.direct(mz1, MSlevel = c(1), progbar = FALSE, minRT = FALSE,
   maxRT = FALSE, minmz = FALSE, maxmz = FALSE)
 }
+\arguments{
+\item{mz1}{mzXML raw object to extract from (as read by \link{readMzXmlFile})}
+
+\item{MSlevel}{MS level to extract}
+
+\item{progbar}{progress bar, as \link{readMSdata}}
+
+\item{minRT}{RT lower bound to extract}
+
+\item{maxRT}{RT upper bound to extract}
+
+\item{minmz}{m/z lower bound to extract}
+
+\item{maxmz}{m/z upper bound to extract}
+}
+\value{
+MSlist object for peak picking with enviPick
+}
 \description{
 Creates a MSlist object directly from a readMzXmlFile list (i.e. allows for manipulating the list beforehand)
 Otherwise c/p from enviPick::readMSdata()
 }
-
+\author{
+stravsmi, mostly copied from Martin Loos
+}

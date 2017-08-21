@@ -21,8 +21,11 @@ sample, organism, spikedChemicals, stressor
 
 sampleSelector returns the indices of all samples from sampleList which match all specified conditions (be they in 
 sampleList or sampleAssignemnt). E.g.
-
+}
+\examples{
+\dontrun{
 sampleSelector(l, a, workup = "supernatant", spikedChemicals = "atrazine")
 sampleSelector(l, a, species = c("ecoli", "botulinum"), spikedChemicals = "atrazine")
 }
 
+}
