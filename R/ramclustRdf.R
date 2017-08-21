@@ -11,7 +11,6 @@
 #' @export
 #' @md
 #'
-#' @examples
 makeProfileMatrix <- function(profiles, type = c("ramclust", "graphviz"), addIndex = TRUE)
 {
   # Drop peaks that are not in a profile
@@ -50,7 +49,6 @@ makeProfileMatrix <- function(profiles, type = c("ramclust", "graphviz"), addInd
 #' @return a dataframe
 #' @export
 #'
-#' @examples
 processRc <- function(RC, profile)
 {
   rcAssignment <- data.frame(RC$fmz, RC$featclus, RC$frt, RC$msint)
@@ -78,7 +76,6 @@ processRc <- function(RC, profile)
 #'        (using the pseudo-sum-intensity from RAMClustR)
 #' @export
 #'
-#' @examples
 quickclust <- function(profileID, profiles, rttol = 60, raw=FALSE, profileMatrix = NULL, sr=0.5 ,st=25)
 {
   rt <- profiles$index_prof[profileID , "mean_RT"]

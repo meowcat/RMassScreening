@@ -123,7 +123,6 @@ batchPick <- function(files, outputDir, polarity = c("+", "-"), writeData = TRUE
 #' @param settings Settings (options) list
 #' @param ... Additional settings to substitute into \code{fun} that are not in \code{settings}
 #'
-#' @return
 #' @export
 #'
 #' @examples

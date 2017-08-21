@@ -12,8 +12,8 @@ countCharOccurrences <- function(char, s) {
 #' For `combineReactions.formula`, all combinations where one of two formulas is not specified are omitted.
 #' 
 #' @param substances Data frame with column `name` and mandatory column `mass` (`combineReactions`) or `formula`  (`combineReactions.formula`).
-#' @param reactions
-#' @param sep
+#' @param reactions Data frame with column `name` and mandatory column `mass` (`combineReactions`) or `formula`  (`combineReactions.formula`).
+#' @param sep Separator between combined reaction names (e.g. `oh` and `deme` with separator `-` get combined to `oh-deme`)
 #' @param omit.name A reaction name which should be omitted in the combined reaction, such as "parent"
 #' 
 #' Expects two data frames with columns mass, name. Combines 
@@ -27,7 +27,7 @@ combineReactions <- function(substances, reactions, sep=" ", omit.name="")
   
   # Consolidate reactions such that no mass is duplicate:
   # for multiply occurring reactions, the one with least "-" in the name is taken.
-  reactions.comb <- consolidateReactions(reactions)
+  reactions.comb <- consolidateReactions(reactions, sep=sep)
   
   # generate table for Jen's functions
   reactions.comb$massdiff <- NULL
@@ -137,7 +137,6 @@ combineReactions.formula <- function(substances, reactions, sep=" ", omit.name="
 #' @param reactions Data frame with `name` and `mass`.
 #' @param eps Merging margin, absolute
 #' @param sep Reaction separator token to filter/count for priority
-#' @return 
 #' 
 #' @author stravsmi
 #' @md
@@ -189,8 +188,6 @@ convertFormulas <- function(substances)
 #' 
 #' @param massSuspects data frame with `name`,`mass` columns
 #' @param formulaSuspects data frame with `name`,`mass` columns 
-#' @returnType 
-#' @return 
 #' 
 #' @author stravsmi
 #' @export

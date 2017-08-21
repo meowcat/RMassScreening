@@ -16,8 +16,8 @@ erb <- function(x,y,sd,eps,...)
 #' @param timepoints 
 #' @param sampleGroups 
 #' @param patterns 
-#' @param clusters RAMClust output converted into suitable input by \code{\link{rcProcess}}
-#' @param addcols 
+#' @param clusters Optional RAMClust output converted into suitable input by \code{\link{rcProcess}}
+#' @param addcols Number of additional columns per sample group present in summarized (totalTable) output. This is 1 if regular processing (adding the mean) is used. 
 #' @param ... 
 #'
 #' @export
