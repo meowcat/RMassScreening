@@ -1,3 +1,41 @@
+#' Batch pick raw mzXML files
+#' 
+#' Peak picking using mostly enviPick. The function handles polarity switching raw files and parallel picking on multiple cores.
+#' `batchPickDIA` additionally handles DIA files, including polarity switching DIA files, and picks every DIA scan separately.
+#' 
+#' Warning: `batchPick` doesn't actually use the `settings` at all! only batchPickDIA does.
+#' 
+#' @details 
+#' `batchPick` picks either positive or negative mode data as specified. For a raw file `RAWFILE.mzXML`, the picked files (`writeData` output) have names
+#' `RAWFILE.mzXML.MSlist.pos.RData` for positive mode, or `.neg.RData` for negative mode respectively.  For `writeList`, the files are `.csv` instead.
+#' 
+#' For `batchPickDIA`, the file names follow the pattern `RAWFILE.mzXML.MSlist.LEVEL-POLARITY-CENTER-WIDTH.RData`. For the MS1 scans, 
+#' this is e.g. `1-pos--` because there is no isolation center or isolation width. For the MS2 scans, a positive scan with center 400 and isolation width
+#' 200 would have `2-pos-400-200` in the name.
+#' 
+#' For legacy reasons, `batchPick` produces the objects `MSlist.pos` and `MSlist.neg` respectively, whereas `batchPickDIA` 
+#' only makes `MSlist` regardless of polarity.
+#' 
+#' `batchPick` will soon be deprecated (or rather `batchPickDIA` will take over the name.)
+#' 
+#' If `multicore` is used, the processing messages ("output") are piped to the `logfile`. For single core, the output is displayed on screen.
+#' 
+#' @param files Array of paths to the raw files.
+#' @param outputDir Folder to write picked file results to.
+#' @param polarity For `batchPick`, `+`or `-`. Selects the polarity to pick. On one hand, this is needed to handle polarity switching files correctly; 
+#' 	on the other hand, it also determines the file names to use downstream. 
+#' @param writeData If `TRUE`, the picked file object (the `MSlist` from enviPick) is saved to disk
+#' @param writeList If `TRUE`, the CSV picked peak table is saved to disk
+#' @param settings Settings to use for enviPick. Read the settings file template for descriptions, or the enviPick documentation accordingly.
+#' 		By default uses the settings as loaded.
+#' @param multicore `FALSE` for single core processing, or an integer number for the number of cores to use. 
+#' @param log Logfile output for multicore processing (irrelevant for single core).
+#'  
+#' @note `batchPickDIA` is the new name for `comprehensiveBatchPick`, which should not be used anymore. 
+#' 
+#' @return For `batchPickDIA`, returns a character vector of all scan types picked (the filename patterns for use in `fillProfiles` etc.).
+#' @author stravsmi
+#' @md
 #' @export
 batchPick <- function(files, outputDir, polarity = c("+", "-"), writeData = TRUE, writeList = TRUE,
                       settings=getOption("RMassScreening")$enviPick,
@@ -137,8 +175,10 @@ batchPick <- function(files, outputDir, polarity = c("+", "-"), writeData = TRUE
 }
 
 
+#' @describeIn batchPick
+#' 
 #' @export
-comprehensiveBatchPick <- function(files, outputDir, writeData = TRUE, writeList = TRUE, settings=getOption("RMassScreening")$enviPick,
+batchPickDIA <- function(files, outputDir, writeData = TRUE, writeList = TRUE, settings=getOption("RMassScreening")$enviPick,
                                    multicore = FALSE, log = "logCluster.txt")
 {
   if(multicore)
@@ -150,12 +190,14 @@ comprehensiveBatchPick <- function(files, outputDir, writeData = TRUE, writeList
     clusterEvalQ(cl, library(RMassScreening))
     
     tryCatch(
-      parLapply(cl, files, function(file, outputDir, writeData, writeList, settings)
+      runs <- parLapply(cl, files, function(file, outputDir, writeData, writeList, settings)
       {
-        comprehensiveBatchPick(file, outputDir, writeData, writeList, settings)
-      },outputDir=outputDir, writeData=writeData, writeList=writeList, settings=settings)
+        batchPickDIA(file, outputDir, writeData, writeList, settings)
+      },outputDir=outputDir, writeData=writeData, writeList=writeList, settings=settings),
+		error = function(e) {runs <- c()}
+		
       ,finally=stopCluster(cl))
-    return()
+    return(unique(unlist(runs)))
   }
   
   for(filepath.mzML in files)
@@ -287,6 +329,15 @@ comprehensiveBatchPick <- function(files, outputDir, writeData = TRUE, writeList
     message("Done.")
     
   }
+  return(names(d.tot))
   
-  
+}
+
+#' @export
+#' @describeIn batchPick
+#' 
+comprehensiveBatchPick <- function(...)
+{
+	message("This call is deprecated, the function is now called batchPickDIA!")
+	batchPickDIA(...)
 }
