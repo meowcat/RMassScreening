@@ -13,10 +13,14 @@
 #'
 makeProfileMatrix <- function(profiles, type = c("ramclust", "graphviz"), addIndex = TRUE)
 {
+	# Convert to data frame if necessary
+  if(!is.data.frame(profiles$peaks))
+	  profiles$peaks <- as.data.frame(profiles$peaks)
   # Drop peaks that are not in a profile
-  profiles$peaks <- profiles$peaks[profiles$peaks[,"profileIDs"] != 0,,drop=FALSE]
+	profiles$peaks <- profiles$peaks[profiles$peaks[,"profileIDs"] != 0,,drop=FALSE]
   profiles$index_prof <- profiles$index_prof[profiles$index_prof[,"profile_ID"] != 0,,drop=FALSE]
   
+  # make the sample x intensity table, with acast as this is faster
   allProfiles <- acast(profiles$peaks, sampleIDs ~ profileIDs, value.var="intensity",
                        fill = 0)
   
