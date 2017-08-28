@@ -1,3 +1,6 @@
+#' @import yaml
+NULL
+
 #' Load RMassScreening settings
 #'
 #' @param file Settings to load
@@ -20,7 +23,7 @@ loadRmsSettings <- function(file)
 RmsSettingsTemplate <- function(target = "settings.ini")
 {
   file.copy(
-    system.file("settings.ini", "RMassScreening"),
+    system.file("settings.ini", package="RMassScreening"),
     target
   )
 }
@@ -31,6 +34,6 @@ RmsSettingsTemplate <- function(target = "settings.ini")
 #'
 RmsDefaultSettings <- function()
 {
- set <- yaml.load_file(system.file("settings.ini", "RMassScreening"))
+ set <- yaml.load_file(system.file("settings.ini", package="RMassScreening"))
  options("RMassScreening" = set)
 }
