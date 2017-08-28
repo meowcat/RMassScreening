@@ -14,9 +14,50 @@ assignSamples <- function(files, sampleList)
 {
   files <- basename(files)
   files.short <- unlist(lapply(files, function(file) strsplit(file, ".", fixed=TRUE)[[1]][[1]]))
-  sampleAssigned <- merge(data.frame(sampleIDs = seq_len(files.short), filename=files.short, stringsAsFactors=FALSE), sampleList)
+  sampleAssigned <- merge(data.frame(sampleIDs = seq_along(files.short), filename=files.short, stringsAsFactors=FALSE), sampleList)
   return(sampleAssigned)
 }
+
+
+
+#' Generate sample table from filenames
+#' 
+#' Splits a vector of filenames by a separator to make a corresponding sample table.
+#' E.g. 001_file1_15_22.mzXML gets split to 001 - file1 - 15 - 22.
+#' Should handle missing entries more or less
+#' 
+#' @param files Files vector
+#' @param sep Separator
+#' @param names Names for output columns. Otherwise will be named col1, col2...
+#' @return A data frame with results
+#' 
+#' @author stravsmi
+#' @export
+generateSampleList <- function(files, sep="_", names=NULL)
+{
+	files.short <- unlist(lapply(basename(files), function(file) strsplit(file, ".", fixed=TRUE)[[1]][[1]]))
+	
+	d.classes <- strsplit(basename(files.short), sep, TRUE)
+	
+	len.max <- max(unlist(lapply(d.classes, length)), na.rm=TRUE)
+	
+	d.classes <- lapply(d.classes, function(cl)
+			{length(cl) <- len.max
+				cl}
+	)
+	d.table <- do.call(rbind, d.classes)
+	
+	if(!is.null(names))
+		colnames(d.table) <- names
+	else
+		colnames(d.table) <- paste0("col", seq_len(len.max))
+	#c("date", "running", "experiment", "time", "sample", "type")
+	
+	samples <- cbind(data.frame(filename=files.short), d.table)
+	return(samples)
+}
+
+
 
 #' Merge sample list information to a profile container
 #' 
