@@ -22,12 +22,14 @@ However other patterns work too, since \code{pattern} specifies which file patte
 \item{polarity}{If \code{pattern} is not used, either \code{+} or \code{-}; this chooses which files to look for.}
 
 \item{pattern}{The file pattern to search for (i.e. what is appended to the raw file name).
-If a raw file \code{FILENAME.mzXML} was picked into \code{FILENAME.mzXML.MSlist.ABCDE.RData}, the \code{pattern} must be set to \code{ABCDE}, see above.}
+If a raw file \code{FILENAME.mzXML} was picked into \code{FILENAME.mzXML.MSlist.ABCDE.RData}, the \code{pattern} must be set to \code{ABCDE}, see above.
+If this is longer than one, a separate container will be created for each pattern and filled accordingly.}
 
 \item{rtrange}{Optional RT range of peaks to extract. Use this to cut off e.g. the column dead volume.}
 }
 \value{
-A profile container in enviMass format.
+A profile container in enviMass format (for no \code{pattern} or a single \code{pattern}, or a list of containers named after the
+corresponding pattern/scan.
 }
 \description{
 Reads a set of files containing enviPick results, and fills an enviMass profile container with the data.
