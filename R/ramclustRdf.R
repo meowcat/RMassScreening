@@ -11,8 +11,30 @@
 #' @export
 #' @md
 #'
-makeProfileMatrix <- function(profiles, type = c("ramclust", "graphviz"), addIndex = TRUE)
+makeProfileMatrix <- function(profiles, type = c("ramclust", "graphviz"), 
+		addIndex = ifelse(type[[1]] == "ramclust",TRUE,FALSE), reindexProfiles = 0)
 {
+	# if this is a list of profile containers, process them all independently
+	if(!is.data.frame(profiles[[1]]))
+	{
+		# first create the profile matrix without reindexing, just to look up the # columns
+		# yes this is a waste of time but it is fast anyway
+		profMatrix <- lapply(seq_along(profiles), function(i)
+					makeProfileMatrix(profiles[[i]], type, FALSE, 0))
+		reindex <- cumsum(c(0, unlist(lapply(profMatrix, ncol))))
+		profMatrix <- lapply(seq_along(profiles), function(i)
+					 makeProfileMatrix(profiles[[i]], type, FALSE, reindex[[i]]))
+		 names(profMatrix) <- names(profiles)
+		 if(addIndex)
+		 {
+			 
+			 indexMatrix <-  cbind("SN" = seq_len(nrow(profMatrix[[1]])))
+			 profMatrix <- c(list(index = indexMatrix), profMatrix)
+			 
+		 }
+		return(profMatrix)
+	}	
+	
 	# Convert to data frame if necessary
   if(!is.data.frame(profiles$peaks))
 	  profiles$peaks <- as.data.frame(profiles$peaks)
@@ -24,7 +46,7 @@ makeProfileMatrix <- function(profiles, type = c("ramclust", "graphviz"), addInd
   allProfiles <- acast(profiles$peaks, sampleIDs ~ profileIDs, value.var="intensity",
                        fill = 0)
   
-  featureTitle <- paste0(profiles$index_prof[,"profile_ID"], "_", round(profiles$index_prof[,15],2))
+  featureTitle <- paste0(profiles$index_prof[,"profile_ID"] + reindexProfiles, "_", round(profiles$index_prof[,15],2))
   
   # for graphViz processing, add the RT as first observation
   if(type[[1]]=="graphviz")
@@ -45,6 +67,36 @@ makeProfileMatrix <- function(profiles, type = c("ramclust", "graphviz"), addInd
 }
 
 
+# Instead of the archaic run indexing "ramclust style", just paste the information table from the profile objects.
+#' Extract essential info from profiles
+#' 
+#' Extracts minimal essential information from profiles table for each profile,
+#' and adds profile run index as required
+#' 
+#' @param profiles A single enviMass profile container or a list of profile containers
+#' @param index The run index to append 
+#' @return A data frame with profile_ID, RT, mz, intensity and scantype index.
+#' 
+#' @author stravsmi
+#' @export
+makeProfileInfo <- function(profiles, index = 1, name = "")
+{
+	# if this is a list of profile containers, process them all independently
+	if(!is.data.frame(profiles[[1]]))
+	{
+		info <- lapply(seq_along(profiles), function(i)
+				{
+					makeProfileInfo(profiles[[i]], i, names(profiles)[[i]])
+				})
+		names(info) <- names(profiles)
+		return(info)
+	}	
+	# extract essential columns from profiles
+	info <- as.data.frame(profiles$index_prof[,c("profile_ID", "mean_RT", "mean_mz", "mean_int")])
+	info[,"scan"] <- rep(index, nrow(info))
+	info[,"scantype"] <- rep(name, nrow(info))
+	return(info)
+}
 
 #' Process RAMClust output for viewer
 #'
@@ -53,17 +105,77 @@ makeProfileMatrix <- function(profiles, type = c("ramclust", "graphviz"), addInd
 #' @return a dataframe
 #' @export
 #'
-processRc <- function(RC, profile)
+processSpectra <- function(cluster, profileInfo, type=c("ramclust", "graphvis"))
 {
-  rcAssignment <- data.frame(RC$fmz, RC$featclus, RC$frt, RC$msint)
-  
-  colnames(rcAssignment) <-  c("profileID", "featureID", "RT", "int")
-  rcAssignment$mz <- profile$index_prof[match(rcAssignment$profileID, profile$index_prof[,"profile_ID"]), "mean_mz"]
-  rcAssignment$profint <- profile$index_prof[match(rcAssignment$profileID, profile$index_prof[,"profile_ID"]), "mean_int"]
-  rcAssignment$profRT <- profile$index_prof[match(rcAssignment$profileID, profile$index_prof[,"profile_ID"]), "mean_RT"]
-  rcAssignment <- rcAssignment[order(rcAssignment$mz),]
-  rcAssignment
+	type <- type[[1]]
+	if(type == "ramclust")
+		stop("Sorry, pure-ramclust result evaluation is currently being refactored. Use largevis-style processing for now.")
+	if(type == "graphvis")
+	{
+		# split the clustering results into spectra 
+		splitSpectra <- split(seq_along(cluster$clusters), cluster$clusters)
+		# for each neighbor list, retrieve the corresponding profile info and split into MS1 and DIA windows
+		spectra <- lapply(names(splitSpectra), function(id)
+				{
+					neighbors <- splitSpectra[[id]]
+					probabilities <- cluster$probabilities[neighbors]
+					profiles <- data.frame(neighbors, probabilities, stringsAsFactors = FALSE)
+					profiles  <- cbind(profiles, profileInfo[neighbors,])
+					
+					subspectra <- split(profiles, profiles$scantype)
+					
+					subspectraRmb <- lapply(subspectra, function(spectrum)
+							{
+								colnames(spectrum) <- c("infoProfile", "probability", "profile", "RT", "mz",  "i", "scan", "scantype")
+								sp <- new("RmbSpectrum2", mz=spectrum$mz, intensity=spectrum$i, rawOK = rep(TRUE, nrow(spectrum)),
+										acquisitionNum = unique(spectrum$scan))
+								sp@properties <- spectrum[,c("probability", "profile", "infoProfile", "RT", "scan", "scantype")]
+								sp
+							}
+					)
+					subspectraRmb <- as(subspectraRmb, "SimpleList")
+					names(subspectraRmb) <- names(subspectra)
+					
+					subspectraRmb
+					
+				})
+	}
+	else
+		spectra <- type
+	w <- newMsmsWorkspace()
+	spectra <- lapply(seq_along(spectra), function(i)
+			{
+				new("RmbSpectraSet",
+						found = TRUE,
+						complete=TRUE,
+						children=spectra[[i]],
+						id = as.character(i))
+			})
+	w@spectra <- as(spectra, "SimpleList")
+	w@aggregated <- aggregateSpectra(w)
+	w
 }
+
+
+#' Select spectra for profile container
+#' 
+#' From an msmsWorkspace containing DDA or DIA spectra, select (in index table) those for a specific profile container for use in the viewer.
+#' 
+#' @param w msmsWorkspace
+#' @param scantype Scantype (profile container) to select
+#' @return msmsWorkspace
+#' 
+#' @author stravsmi
+#' @export
+selectSpectraProfiles <- function(w, scantype)
+{
+	w@aggregated <- w@aggregated[w@aggregated$scantype == scantype,,drop=FALSE]
+	w
+}
+
+
+	
+## }
 
 #' Quick RAMClustR application
 #' 
