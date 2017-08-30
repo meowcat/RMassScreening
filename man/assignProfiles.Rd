@@ -7,7 +7,7 @@
 assignProfiles(profiles, sampleList, zerofill = FALSE)
 }
 \arguments{
-\item{profiles}{EnviMass profile container}
+\item{profiles}{EnviMass profile container or list of containers}
 
 \item{sampleList}{A sample list with attached sampleIDs, as obtained from \link{assignSamples}.}
 
@@ -15,7 +15,7 @@ assignProfiles(profiles, sampleList, zerofill = FALSE)
 (otherwise many results are "missing").}
 }
 \value{
-The updated profile container.
+The updated profile container(s).
 }
 \description{
 Adds sample list columns (e.g. timepoint, species, etc as specified in the sample list) to the \code{peaks} table in the \code{profiles} container,

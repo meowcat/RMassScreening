@@ -5,7 +5,7 @@
 \title{Run the results viewer}
 \usage{
 runViewer(totalTable, hits, timepoints, sampleGroups, patterns = NULL,
-  clusters = NULL, addcols = 1, settings = getOption("RMassScreening"),
+  spectra = NULL, addcols = 1, settings = getOption("RMassScreening"),
   profiles = NULL, files = NULL, ...)
 }
 \arguments{
@@ -19,7 +19,7 @@ runViewer(totalTable, hits, timepoints, sampleGroups, patterns = NULL,
 
 \item{patterns}{}
 
-\item{clusters}{Optional RAMClust output converted into suitable input by \code{\link{rcProcess}}}
+\item{spectra}{msmsWorkspace containing extracted spectra for profiles}
 
 \item{addcols}{Number of additional columns per sample group present in summarized (totalTable) output. This is 1 if regular processing (adding the mean) is used.}
 

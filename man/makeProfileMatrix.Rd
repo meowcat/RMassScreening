@@ -5,7 +5,8 @@
 \title{Make matrix for use with ramclustR.df}
 \usage{
 makeProfileMatrix(profiles, type = c("ramclust", "graphviz"),
-  addIndex = TRUE)
+  addIndex = ifelse(type[[1]] == "ramclust", TRUE, FALSE),
+  reindexProfiles = 0)
 }
 \arguments{
 \item{profiles}{A profiles object from enviMass}
