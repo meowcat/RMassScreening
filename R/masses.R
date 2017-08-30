@@ -1,3 +1,6 @@
+#' @import RMassBank
+NULL
+
 countCharOccurrences <- function(char, s) {
   s2 <- gsub(char,"",s)
   return (nchar(s) - nchar(s2))
@@ -75,8 +78,15 @@ combineReactions <- function(substances, reactions, sep=" ", omit.name="")
 #' @export
 combineReactions.formula <- function(substances, reactions, sep=" ", omit.name="")
 {
-  par.peaks <- data.frame(formula = substances$formula, rt=0, into=0)
+  par.peaks <- data.frame(formula = substances$formula, rt=0, into=0, stringsAsFactors = FALSE)
   rownames(par.peaks) <- substances$name
+  
+  # this is a safeguard for the "parent" reaction where mass is zero, there the formula should be preserved
+  # otherwise the "parents" are lost if only formula but not mass is used for combining reactions
+  if("mass" %in% colnames(substances))
+  	par.peaks[substances$mass == 0, "formula"] <- "C0"
+  if("mass" %in% colnames(reactions))
+ 	reactions[reactions$mass == 0, "formula"] <- "C0"
   
   # Use only the rows for which there is a formula entry
   par.peaks <- par.peaks[!is.na(par.peaks$formula) & (par.peaks$formula != ""),]

@@ -220,7 +220,9 @@ cutSingleProfiles <- function(profiles, minPeaks = 1)
 			profiles$index_prof[,"profile_ID"],
 			0
 			)	
-	
+	profiles$index_prof[,"profile_ID"] <- seq_len(nrow(profiles$index_prof))
+			
+			
 	# remove peaks with no profile
 	profiles$peaks <- profiles$peaks[
 			profiles$peaks[,"profileIDs"] != 0,,drop=FALSE]

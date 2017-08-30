@@ -64,17 +64,23 @@ generateSampleList <- function(files, sep="_", names=NULL)
 #' Adds sample list columns (e.g. timepoint, species, etc as specified in the sample list) to the `peaks` table in the `profiles` container,
 #' such that it can later easily be sorted, filtered etc.  
 #' 
-#' @param profiles EnviMass profile container
+#' @param profiles EnviMass profile container or list of containers
 #' @param sampleList A sample list with attached sampleIDs, as obtained from [assignSamples].
 #' @param zerofill If `zerofill` is active, a new zero-intensity result is generated for every possible profile-sample combination
 #' 	(otherwise many results are "missing").  
-#' @return The updated profile container.
+#' @return The updated profile container(s).
 #' 
 #' @md
 #' @author stravsmi
 #' @export
 assignProfiles <- function(profiles, sampleList, zerofill = FALSE)
 {
+	# if this is a list of profile containers, process them all independently
+	if(!is.data.frame(profiles[[1]]))
+	{
+		profiles <- lapply(profiles, assignProfiles, sampleList, zerofill)
+		return(profiles)
+	}	
   
   if(zerofill)
   {
