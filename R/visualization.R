@@ -239,8 +239,18 @@ runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NUL
 	
 	# simply plot MS
 	output$spectrumPlot <- renderPlot({
-				sp <- getData(spectrum())
-				plot(intensity ~ mz, data = sp, type="h", col="red")
+#				sp <- getData(spectrum())
+#				plot(intensity ~ mz, data = sp, type="h", col="red")
+#				if("formula" %in% colnames(sp))
+#				{
+#					spForm <- sp[!is.na(sp$formula),,drop=FALSE]
+#					spForm <- spForm[spForm$dppm == spForm$dppmBest,,drop=FALSE]
+#					text(x=spForm$mz, y=spForm$intensity, label=spForm$formula)
+#				}
+			sp <- normalize(spectrum(), slot="intrel")
+			if(length(sp@formula)>0)
+				sp <- selectPeaks(sp, (is.na(formula) | (is.na(formulaCount))))
+			plotTP(sp)
 			})
 	
 	# formatted data table output
@@ -253,10 +263,17 @@ runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NUL
 						profile = sp$profile, 
 						RT = round(sp$RT  / 60, 2)
 						)
-						sp
-			},
+				if("formula" %in% colnames(sp))
+				{
+					spFormatted$formula <- sp$formula
+					spFormatted$ppm <- round(sp$dppm,2)
+					spFormatted$dbe <- sp$dbe
+				}
+				spFormatted
+				},
 			options=list(rownames = FALSE))
 	
+	# process a compound with RMassBank
 	observeEvent(input$targetAnalyze,
 			{
 				withProgress(message = "Processing...",
@@ -267,6 +284,7 @@ runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NUL
 				cpd <- cpd()
 				cpd@formula <- formula
 				cpd@mz <- 0
+				# Split into positive and negative spectra, select only MS2
 				cpdPos <- cpd
 				cpdNeg <- cpd
 				scans <- readScantype(names(cpd@children))
@@ -278,6 +296,7 @@ runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NUL
 						(scans$msLevel == 2) &
 								(scans$polarity == "neg")
 				]
+				# Use some very basic filter settings (see docs for analyzeMsMs.formula)
 				filterSettings <- list(
 						fineCut = 0,
 						fineCutRatio = 0,
@@ -286,7 +305,10 @@ runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NUL
 						satelliteMzLimit = 0.5,
 						satelliteIntLimit = 0.05,
 						ppmFine = 5)
-				
+				# Process positive spectra with [M+H]+ mode and negative spectra with [M-H]- mode, respectively
+				# if any spectra are present
+				# note the .depropSpectra, .repropSpectra are workarounds because of a bug in RMassBank,
+				# analyzeMsMs.formula can't deal with any @properties so they are removed and then added back
 				if(length(cpdPos@children) > 1)
 				{
 					cpdPos <- .depropSpectra(cpdPos)
@@ -302,8 +324,10 @@ runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NUL
 							filterSettings)
 					cpdNeg <- .repropSpectra(cpdNeg)
 				}
+				# substitute the processed spectra into the cpd
 				cpd@children[names(cpdPos@children)] <- cpdPos@children
 				cpd@children[names(cpdNeg@children)] <- cpdNeg@children
+				# store the cpd in the reactive container to trigger replotting / new table writing
 				rv$cpd <- cpd
 			})
 			})
@@ -320,12 +344,13 @@ runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NUL
 					formulas <- profileHits$formula
 					names(formulas) <- c(sprintf("%s [%s]", profileHits$name, profileHits$formula)) 
 				}
-				formulas <- c(formulas, "Custom formula" = "")
+				# Add a "nonformula" for 
+				formulas <- c(formulas, "Custom formula" = " ")
 				updateSelectInput(session, "targetSelect", choices=formulas)
 			})
 	# update the formula field if a target is chosen from the dropdown 
 	observe({
-				updateTextInput(session, "targetFormula", value=input$targetSelect)
+				updateTextInput(session, "targetFormula", value=trimws(input$targetSelect))
 			})
 	
 	
