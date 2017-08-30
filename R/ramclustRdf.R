@@ -257,3 +257,33 @@ submatrix <- function(rt, profiles, rttol = 60, addIndex = TRUE)
     cat(paste("Time for building profile matrix:", round(ti[[3]],2), "\r\n"))
     return(profileMatrix)
 }
+
+
+# This is a workaround until I fix this in RMassBank:
+# analyzeMsMs.formula doesn't work if there are properties in a spectrum
+# .depropSpectra removes properties from a cpd, and .repropSpectra adds them back
+.depropSpectra <- function(cpd)
+{
+	cpdOld <- cpd
+	for(i in seq_along(cpd@children))
+		cpd@children[[i]]@properties <- data.frame()
+	return(list(new = cpd, old = cpdOld))
+}
+.repropSpectra <- function(cpd)
+{
+	cpdOld <- cpd$old
+	cpd <- cpd$new
+	for(i in seq_along(cpd@children))
+	{
+		data <- getData(cpd@children[[i]])
+		dataOld <- getData(cpdOld@children[[i]])
+		colMerge <- c("mz", "intensity")
+		colData <- setdiff(colnames(data), colMerge)
+		colOld <- setdiff(colnames(dataOld), colMerge)
+		data <- data[,c(colMerge, colData)]
+		dataOld <- dataOld[,c(colMerge, colnames(cpdOld@children[[i]]@properties))]
+		dataNew <- merge(data, dataOld, by=colMerge, all=TRUE)
+		cpdOld@children[[i]] <- setData(cpdOld@children[[i]], dataNew) 
+	}
+	cpdOld
+}

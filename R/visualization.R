@@ -8,6 +8,33 @@ erb <- function(x,y,sd,eps,...)
   segments(x-eps,y+sd,x+eps,y+sd,...)
 }
 
+#' Convert scantype string to readable output
+#' 
+#' @param x input characters vector 
+#' @return Converted vector
+#' 
+#' @author stravsmi
+#' @export
+readScantype <- function(x)
+{
+	xsplit <- strsplit(x, "-")
+	xsplit <- lapply(xsplit, function(xx) {
+				length(xx) <- 4
+				xx
+			})
+	xtab <- do.call(rbind,xsplit)
+	xdf <- data.frame(msLevel = as.integer(xtab[,1]),
+				polarity = xtab[,2],
+				center = as.numeric(xtab[,3]),
+				window = as.numeric(xtab[,4]) )
+	xdf$min <- xdf$center - xdf$window/2
+	xdf$max <- xdf$center + xdf$window/2
+	xdf$string <- sprintf("MS%d %s", xdf$msLevel, xdf$polarity)
+	xdf$ms2string <- sprintf("MS%d %s [%.0f - %.0f]", xdf$msLevel, xdf$polarity, xdf$min, xdf$max)
+	xdf$string[xdf$msLevel == 2] <- xdf$ms2string[xdf$msLevel==2]
+	xdf
+}
+
 #' Run the results viewer
 #'
 #' @param totalTable 
@@ -16,12 +43,12 @@ erb <- function(x,y,sd,eps,...)
 #' @param timepoints 
 #' @param sampleGroups 
 #' @param patterns 
-#' @param clusters Optional RAMClust output converted into suitable input by \code{\link{rcProcess}}
+#' @param spectra msmsWorkspace containing extracted spectra for profiles
 #' @param addcols Number of additional columns per sample group present in summarized (totalTable) output. This is 1 if regular processing (adding the mean) is used. 
 #' @param ... 
 #'
 #' @export
-runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NULL, clusters = NULL, addcols = 1, settings = getOption("RMassScreening"), 
+runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NULL, spectra = NULL, addcols = 1, settings = getOption("RMassScreening"), 
                       profiles = NULL, files = NULL, ...)
 {
   fe <- environment()
@@ -54,12 +81,7 @@ runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NUL
 # 
 # "
   
-  # split RAMClust clusters into spectra
-  if(!is.null(clusters))
-  {
-    clusters <- merge(clusters, hits[,c("profileID", "name", "mass", "dppm")], all.x=TRUE)
-    spectra <- split(clusters, clusters$featureID)
-  }
+	rv <- reactiveValues(cpd = NA, spectrum = NA)
   
   profileNames <- paste0(tt.hits$name, " (", round(tt.hits$mz,4), "/", round(tt.hits$RT / 60,1),")")
   profileList <- tt.hits$profileIDs
@@ -168,59 +190,196 @@ runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NUL
   #     tt.hits.all[hits,c("mass", "name", "dppm", "mz", "RT", "int"),drop=FALSE]
   # }))
     #output$pinList <- renderText(tt.hits.all[values$pinList,])
+
+
+	#######################################
+	# MS2 integration
+	########################################
+
+	# get the RMassBank compound associated with the selected profile,
+	# if there is one
+    cpd <- reactive({
+				p <- input$profile
+				if(is.null(spectra)) return(NULL)
+				specrow <- which(spectra@aggregated$profile == p)
+				if(length(specrow) > 0)
+				{
+					cpdID <- spectra@aggregated$cpdID[specrow]
+					return(spectra@spectra[[as.numeric(cpdID)]])
+				}
+				else
+					return(NULL)
+			})
+	
+	# update the spectrum selection dropdown with the spectra
+	# present for this compound
+	observe({
+				cp <- cpd()
+				if(is.null(cp))
+					updateSelectInput(session, "spectraSelect", choices = c("."))
+				else
+				{
+					scans <- names(cp@children)
+					names(scans) <- readScantype(scans)$string
+					updateSelectInput(session, "spectraSelect", choices = scans)
+				}
+				# set the compound in the reactive container, which is used for RMB processing
+				rv$cpd <- cp
+			})
+	
+	# read out the selected spectrum
+	spectrum <- reactive({
+				cp <- rv$cpd
+				if(is.null(cp))
+					return(NULL)
+				scan <- input$spectraSelect
+				sp <- cp@children[[scan]]
+				sp
+			})
+	
+	# simply plot MS
+	output$spectrumPlot <- renderPlot({
+				sp <- getData(spectrum())
+				plot(intensity ~ mz, data = sp, type="h", col="red")
+			})
+	
+	# formatted data table output
+	output$spectrumTable <- renderDataTable({
+				sp <- getData(spectrum())
+				spFormatted <- data.frame(
+						mz = round(sp$mz, 5),
+						intensity = signif(sp$intensity, 3),
+						prob = signif(sp$probability, 3) * 100,
+						profile = sp$profile, 
+						RT = round(sp$RT  / 60, 2)
+						)
+						sp
+			},
+			options=list(rownames = FALSE))
+	
+	observeEvent(input$targetAnalyze,
+			{
+				withProgress(message = "Processing...",
+						value = 0,
+						{
+				formula <- input$targetFormula
+				# get the unprocessed compound
+				cpd <- cpd()
+				cpd@formula <- formula
+				cpd@mz <- 0
+				cpdPos <- cpd
+				cpdNeg <- cpd
+				scans <- readScantype(names(cpd@children))
+				cpdPos@children <- cpdPos@children[
+						(scans$msLevel == 2) &
+						(scans$polarity == "pos")
+						]
+				cpdNeg@children <- cpdNeg@children[
+						(scans$msLevel == 2) &
+								(scans$polarity == "neg")
+				]
+				filterSettings <- list(
+						fineCut = 0,
+						fineCutRatio = 0,
+						specOkLimit = 0,
+						dbeMinLimit = 0,
+						satelliteMzLimit = 0.5,
+						satelliteIntLimit = 0.05,
+						ppmFine = 5)
+				
+				if(length(cpdPos@children) > 1)
+				{
+					cpdPos <- .depropSpectra(cpdPos)
+					cpdPos$new <- analyzeMsMs.formula(cpdPos$new, "pH", TRUE, "",
+							filterSettings)
+					cpdPos <- .repropSpectra(cpdPos)
+				}
+					
+				if(length(cpdNeg@children) > 1)
+				{
+					cpdNeg <- .depropSpectra(cpdNeg)
+					cpdNeg$new <- analyzeMsMs.formula(cpdNeg$new, "mH", TRUE, "",
+							filterSettings)
+					cpdNeg <- .repropSpectra(cpdNeg)
+				}
+				cpd@children[names(cpdPos@children)] <- cpdPos@children
+				cpd@children[names(cpdNeg@children)] <- cpdNeg@children
+				rv$cpd <- cpd
+			})
+			})
+	
+	# update the formula selection if there are formulas for the suspect hits
+	observe({
+				p <- input$profile
+				profileHits <- tt.hits[tt.hits$profile == p,]
+				if(is.null(profileHits$formula))
+					formulas <- c()
+				else
+				{
+					profileHits <- profileHits[!is.na(profileHits$formula) & (profileHits$formula != ""),,drop=FALSE]
+					formulas <- profileHits$formula
+					names(formulas) <- c(sprintf("%s [%s]", profileHits$name, profileHits$formula)) 
+				}
+				formulas <- c(formulas, "Custom formula" = "")
+				updateSelectInput(session, "targetSelect", choices=formulas)
+			})
+	# update the formula field if a target is chosen from the dropdown 
+	observe({
+				updateTextInput(session, "targetFormula", value=input$targetSelect)
+			})
+	
+	
+#    #####################################
+#    # RAMClust data
+#    clusterTable <- reactive({
+#      p <- input$profile
+#      if(is.null(clusters)) return(data.frame())
+#      isolate({
+#        row <- match(p, rcAssignment$profileID)
+#        fid <- rcAssignment[row,"featureID"]
+#        if(fid != 0)
+#        {
+#          sp <- (spectra[[as.character(fid)]])
+#          sp$int <- signif(sp$int, 3)
+#          sp$dmz <- sp$mz - rcAssignment[row, "mz"]
+#          sp$mz <- round(sp$mz, 4)
+#          sp$dmz <- round(sp$dmz, 4)
+#          sp$profint <- signif(sp$profint, 3)
+#          sp$RT <- round(sp$RT/60,2)
+#          sp$profRT <- round(sp$profRT,1)
+#          sp <- sp[,c("featureID", "profileID", "name", "mz", "dmz", "int", "profint", "RT", "profRT")]
+#          sp
+#        }
+#          
+#        else
+#          return(data.frame())
+#      })
+#    })
     
-    
-    #####################################
-    # RAMClust data
-    clusterTable <- reactive({
-      p <- input$profile
-      if(is.null(clusters)) return(data.frame())
-      isolate({
-        row <- match(p, rcAssignment$profileID)
-        fid <- rcAssignment[row,"featureID"]
-        if(fid != 0)
-        {
-          sp <- (spectra[[as.character(fid)]])
-          sp$int <- signif(sp$int, 3)
-          sp$dmz <- sp$mz - rcAssignment[row, "mz"]
-          sp$mz <- round(sp$mz, 4)
-          sp$dmz <- round(sp$dmz, 4)
-          sp$profint <- signif(sp$profint, 3)
-          sp$RT <- round(sp$RT/60,2)
-          sp$profRT <- round(sp$profRT,1)
-          sp <- sp[,c("featureID", "profileID", "name", "mz", "dmz", "int", "profint", "RT", "profRT")]
-          sp
-        }
-          
-        else
-          return(data.frame())
-      })
-    })
-    
-    output$clusterTable <- renderDataTable(clusterTable())
-    
-    output$clusterPlot <- renderPlot(
-      {
-        spec <- clusterTable()
-        if(nrow(spec) == 0)
-        {
-          plot.new()
-          return()
-        }
-        plot.new()
-        plot.window(xlim=range(spec$mz)+c(-10,10), ylim=range(0, spec$int))
-        axis(1)
-        axis(2)
-        isolate({
-          p <- input$profile
-          peak <- spec[spec$profileID == p,]
-          abline(v=peak$mz, col="red")
-        })
-        
-        lines(spec$mz, spec$int, type="h", col="blue", lwd=2)
-        
-      }
-    )
+#    output$clusterTable <- renderDataTable(clusterTable())
+#    
+#    output$clusterPlot <- renderPlot(
+#      {
+#        spec <- clusterTable()
+#        if(nrow(spec) == 0)
+#        {
+#          plot.new()
+#          return()
+#        }
+#        plot.new()
+#        plot.window(xlim=range(spec$mz)+c(-10,10), ylim=range(0, spec$int))
+#        axis(1)
+#        axis(2)
+#        isolate({
+#          p <- input$profile
+#          peak <- spec[spec$profileID == p,]
+#          abline(v=peak$mz, col="red")
+#        })
+#        
+#        lines(spec$mz, spec$int, type="h", col="blue", lwd=2)
+#        
+#      }
+#    )
     
     
     
@@ -499,13 +658,24 @@ visualization.ui <- function(filterCols, profileList, sampleGroups)
                                       verticalLayout(
                                         dataTableOutput("hitTable"),
                                         dataTableOutput("patternTable"),
-                                        dataTableOutput("peaksTable")                                      )
+                                        dataTableOutput("peaksTable")                                      
+										)
                                       )
                              ,
-                             tabPanel("cluster",
+                             tabPanel("spectra",
                                       verticalLayout(
-                                        plotOutput("clusterPlot"),
-                                        dataTableOutput("clusterTable")
+										fluidRow(column(width=4,
+												selectInput("spectraSelect", label="Spectrum:", choices=NULL)),
+										column(width=6,
+												selectInput("targetSelect", label="Target:", choices=NULL)
+												)),
+										fluidRow(
+												column(width=4, actionButton("targetAnalyze", "Analyze spectra")),
+												column(width=6, textInput("targetFormula", label="Formula", value=""))
+										),
+								
+                                        plotOutput("spectrumPlot"),
+                                        dataTableOutput("spectrumTable")
                              )
                             )
                              )
