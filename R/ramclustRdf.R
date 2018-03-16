@@ -183,7 +183,7 @@ selectSpectraProfiles <- function(w, scantype)
 #'
 #' @param profileID The profile you want to look up (integer)
 #' @param profileMatrix A sample x feature matrix as returned by \link{\code{makeProfileMatrix}}
-#' @param profiles A profile list produced by \link{nontarget}
+#' @param profiles A profile list produced by nontarget
 #' @param rttol Retention time window to extract from the profile matrix to cluster on. A value of 60 means +- 30 
 #'        (in unit of your retention time, i.e. if you have seconds use seconds)
 #' @param raw if TRUE, return the RAMClustR result instead. Useful for development purposes.
