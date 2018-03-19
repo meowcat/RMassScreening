@@ -52,8 +52,8 @@ batchPick <- function(files, outputDir, polarity = c("+", "-"), writeData = TRUE
 		tryCatch(
 				parLapply(cl, files, function(file, outputDir, writeData, writeList, settings)
 						{
-							batchPick(file, outputDir, writeData, writeList, settings)
-						},outputDir=outputDir, writeData=writeData, writeList=writeList, settings=settings)
+							batchPick(file, outputDir, polarity, writeData, writeList, settings)
+						},outputDir=outputDir, polarity=polarity, writeData=writeData, writeList=writeList, settings=settings)
 				,finally=stopCluster(cl))
 		return()
 	}
