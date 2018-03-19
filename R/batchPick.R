@@ -50,7 +50,7 @@ batchPick <- function(files, outputDir, polarity = c("+", "-"), writeData = TRUE
 		clusterEvalQ(cl, library(RMassScreening))
 		
 		tryCatch(
-				parLapply(cl, files, function(file, outputDir, writeData, writeList, settings)
+				parLapply(cl, files, function(file, outputDir, polarity, writeData, writeList, settings)
 						{
 							batchPick(file, outputDir, polarity, writeData, writeList, settings)
 						},outputDir=outputDir, polarity=polarity, writeData=writeData, writeList=writeList, settings=settings)
