@@ -10,7 +10,7 @@ quickclust(profileID, profiles, rttol = 60, raw = FALSE,
 \arguments{
 \item{profileID}{The profile you want to look up (integer)}
 
-\item{profiles}{A profile list produced by \link{nontarget}}
+\item{profiles}{A profile list produced by nontarget}
 
 \item{rttol}{Retention time window to extract from the profile matrix to cluster on. A value of 60 means +- 30 
 (in unit of your retention time, i.e. if you have seconds use seconds)}
