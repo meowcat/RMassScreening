@@ -17,7 +17,7 @@ quickclust(profileID, profiles, rttol = 60, raw = FALSE,
 
 \item{raw}{if TRUE, return the RAMClustR result instead. Useful for development purposes.}
 
-\item{profileMatrix}{A sample x feature matrix as returned by \link{\code{makeProfileMatrix}}}
+\item{profileMatrix}{A sample x feature matrix as returned by \code{makeProfileMatrix}}
 }
 \value{
 a \code{data.frame} (\code{profileID, mz, RT, int}) with the "pseudospectrum" at that RT 

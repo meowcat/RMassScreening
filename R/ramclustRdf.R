@@ -182,7 +182,7 @@ selectSpectraProfiles <- function(w, scantype)
 #' Applies RAMClustR to a small subset of all profiles that are in the retention time window around a specific profile of interest.
 #'
 #' @param profileID The profile you want to look up (integer)
-#' @param profileMatrix A sample x feature matrix as returned by \link{\code{makeProfileMatrix}}
+#' @param profileMatrix A sample x feature matrix as returned by \code{makeProfileMatrix}
 #' @param profiles A profile list produced by nontarget
 #' @param rttol Retention time window to extract from the profile matrix to cluster on. A value of 60 means +- 30 
 #'        (in unit of your retention time, i.e. if you have seconds use seconds)
