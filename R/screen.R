@@ -135,19 +135,18 @@ screenProfiles <- function(profiles, suspects, polarity = "+", ppmLimit = getOpt
   potential$X <- NULL
   ppmMax <- ppmLimit
   
-  
-  hits <- lapply(1:nrow(peaklist), function(n)
+  hits <- lapply(1:nrow(potential), function(n)
   {
-    mass <- peaklist[n,"mean_mz"]
-    peaklist.hit <- potential[abs(potential$mass - mass) < ppm(mass, ppmMax),,drop=FALSE]
-    peaklist.hit$dppm <- ((peaklist.hit$mass / mass)-1)*1e6
-    peaklist.hit$profileID <- rep(peaklist[n, "profile_ID"], nrow(peaklist.hit))
-    peaklist.hit$mz <- rep(peaklist[n, "mean_mz"], nrow(peaklist.hit))
-    peaklist.hit$RT <- rep(peaklist[n, "mean_RT"], nrow(peaklist.hit))
-    peaklist.hit$int <- rep(peaklist[n, "mean_int"], nrow(peaklist.hit))
-    return(peaklist.hit)
+    mass <- potential$mass[[n]]
+    dppm <- ((peaklist$mean_mz / mass) - 1) * 1e6
+    hit <- peaklist[abs(dppm) < ppmMax,c("profile_ID", "mean_mz", "mean_RT", "mean_int"),drop=FALSE]
+    colnames(hit) <- c("profileID", "mz", "RT", "int")
+    #ppmShort <- dppm[abs(dppm) < ppmMax]
+    df <- cbind(potential[rep(n, nrow(hit)),,drop=FALSE], hit)
+    
   })
   
   hits.total <- do.call(rbind, hits)
+  hits.total$ppm <- (hits.total$mz/hits.total$mass -1) * 1e6
   return(hits.total)
 }
