@@ -108,6 +108,30 @@ assignProfiles <- function(profiles, sampleList, zerofill = FALSE)
 #' @export
 ppm <- function(mz, ppmlimit) (1e-6 * mz * ppmlimit)
 
+	
+#' RT filter for suspect screening
+#' 
+#' @note This conflicts with the RMassBank declaration of `ppm`, which does something different!
+#' 
+#' @param expected.rt expected retention time
+#' @param measured.rt measured retention time 
+#' @param rttol retention time tolerance for determining a match
+	
+#' @md
+#' @author schollje
+#' @export	
+	
+RTfilter <- function(expected.rt, measured.rt, rttol){
+  
+  match <- c()
+  if(measured.rt > expected.rt - rttol && measured.rt < expected.rt + rttol)
+    match <- TRUE
+  else
+    match <- FALSE
+  
+  return(match)
+}
+				     
 #' Screen for suspect masses in a profile container.
 #' 
 #' Simple screening looking for suspect exact masses in enviMass profiles.
@@ -120,7 +144,8 @@ ppm <- function(mz, ppmlimit) (1e-6 * mz * ppmlimit)
 #' @param ppmLimit Maximal ppm deviation from target mass
 #' 
 #' @export
-screenProfiles <- function(profiles, suspects, polarity = "+", ppmLimit = getOption("RMassScreening")$screenProfiles$ppmLimit)
+screenProfiles <- function(profiles, suspects, polarity = "+", ppmLimit = getOption("RMassScreening")$screenProfiles$ppmLimit,
+			  rttol = 0.25)
 {
   if(is.null(ppmLimit))
     stop("No ppm limit specified. Specify either as a parameter or in your settings file.")
@@ -148,5 +173,6 @@ screenProfiles <- function(profiles, suspects, polarity = "+", ppmLimit = getOpt
   
   hits.total <- do.call(rbind, hits)
   hits.total$ppm <- (hits.total$mz/hits.total$mass -1) * 1e6
+  hits.total$RTmatch <- mapply(RTfilter, hits.total$mean_RT, hits.total$RT, rttol)
   return(hits.total)
 }
