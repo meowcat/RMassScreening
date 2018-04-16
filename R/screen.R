@@ -108,44 +108,27 @@ assignProfiles <- function(profiles, sampleList, zerofill = FALSE)
 #' @export
 ppm <- function(mz, ppmlimit) (1e-6 * mz * ppmlimit)
 
-	
-#' RT filter for suspect screening
-#' 
-#' @note This conflicts with the RMassBank declaration of `ppm`, which does something different!
-#' 
-#' @param expected.rt expected retention time
-#' @param measured.rt measured retention time 
-#' @param rttol retention time tolerance for determining a match
-	
-#' @md
-#' @author schollje
-#' @export	
-	
-RTfilter <- function(expected.rt, measured.rt, rttol){
-  
-  match <- c()
-  if(measured.rt > expected.rt - rttol && measured.rt < expected.rt + rttol)
-    match <- TRUE
-  else
-    match <- FALSE
-  
-  return(match)
-}
-				     
 #' Screen for suspect masses in a profile container.
 #' 
 #' Simple screening looking for suspect exact masses in enviMass profiles.
 #' 
-#' Could be improved.
+#' Could still be improved, even though it's better than before.
 #' 
 #' @param profiles a profiles container
-#' @param suspects A data frame that must contain a "mass" column. Additionally a "name" column is useful (though not formally required)
+#' @param suspects A data frame that must contain a "mass" column. Additionally a "name" column is useful (though not formally required).
+#'  Optionally a "ret" column with a suspect retention time, in units of profile RT (most typically seconds)
 #' @param polarity "+" or "-", determining what mass to look for
 #' @param ppmLimit Maximal ppm deviation from target mass
+#' @param rtLimit Maximal retention time deviation in units of profile RT (most typically seconds), or NULL or FALSE if 
+#' RT matching is not desired. Note this: If the rtLimit is specified positively (>0), RT must match. If rtLimit is specified
+#' negatively (<0), RT must either match or be NA in the suspect list.
 #' 
+#' If suspects$ret is specified but rtLimit is NULL, the dRT is calculated but not used for filtering.
+#' Note: rtLimit is NULL in the default settings to preserve backwards compatibility.
+#'  
 #' @export
 screenProfiles <- function(profiles, suspects, polarity = "+", ppmLimit = getOption("RMassScreening")$screenProfiles$ppmLimit,
-			  rttol = 0.25)
+			  rtLimit = getOption("RMassScreening")$screenProfiles$rtLimit)
 {
   if(is.null(ppmLimit))
     stop("No ppm limit specified. Specify either as a parameter or in your settings file.")
@@ -172,7 +155,22 @@ screenProfiles <- function(profiles, suspects, polarity = "+", ppmLimit = getOpt
   })
   
   hits.total <- do.call(rbind, hits)
-  hits.total$ppm <- (hits.total$mz/hits.total$mass -1) * 1e6
-  hits.total$RTmatch <- mapply(RTfilter, hits.total$mean_RT, hits.total$RT, rttol)
+  hits.total$dppm <- (hits.total$mz/hits.total$mass -1) * 1e6
+  
+  # IF 
+  if(!is.null(hits.total$ret))
+  {
+    hits.total$dRT <- (hits.total$RT-hits.total$ret)
+    if(!is.null(rtLimit) )
+    {
+      # match strictly (NA not ok) or loosely (NA ok)?
+      # if rtLimit sign is 1, rtStrict is TRUE i.e. RT MUST match and NA is not ok.
+      rtStrict <- (sign(rtLimit) == 1)
+      
+      hits.total <- hits.total[(!is.na(hits.total$dRT) | !rtStrict),,drop=FALSE]
+      hits.total <- hits.total[(is.na(hits.total$dRT)) | (abs(hits.total$dRT) < abs(rtLimit)),,drop=FALSE]
+    }
+  }
+  
   return(hits.total)
 }
