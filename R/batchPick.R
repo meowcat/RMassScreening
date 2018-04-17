@@ -307,7 +307,20 @@ comprehensiveBatchPick <- function(...)
 }
 
 
-.getScantypeSettings <- function(allTypes, settings)
+#' Get settings per scantype
+#'
+#' @param allTypes All scan types to be processed
+#' @param settings enviPick settings in the format used in the enviPick listslot in settings.ini
+#' 
+#' This processes the settings such that the global settings are taken for all scan types,
+#' and then for every specified scantype the global settings are overwritten with specific
+#' settings if they exist (e.g. if a scantype has a specific "maxint" defined).
+#'
+#' @return
+#' @export
+#'
+#' @examples
+.getScantypeSettings <- function(allTypes, settings = getOption("RMassScreening")$enviPick)
 {
   # define settings specific for every scantype
 
