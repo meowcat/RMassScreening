@@ -57,6 +57,10 @@ batchPick <- function(files, outputDir, polarity = c("+", "-"), writeData = TRUE
 				,finally=stopCluster(cl))
 		return()
 	}
+  
+  scanSettings <- .getScantypeSettings(c("1-pos--", "1-neg--"), settings)
+  settingsPos <- scanSettings[["1-pos--"]]
+  settingsNeg <- scanSettings[["1-neg--"]]
 	
   for(filepath.mzML in files)
   {
@@ -80,11 +84,13 @@ batchPick <- function(files, outputDir, polarity = c("+", "-"), writeData = TRUE
     # (3) Partition the measurements now available in MSlist:
     message("Step 2 - agglomeration", appendLF = FALSE)
     if(pos){
-      MSlist.pos <- mzagglom(MSlist.pos,dmzgap=10,ppm=TRUE,drtgap=500,minpeak=4,maxint=1E7)
+      #MSlist.pos <- mzagglom(MSlist.pos,dmzgap=10,ppm=TRUE,drtgap=500,minpeak=4,maxint=1E7)
+      MSlist.pos <- .call.fun.settings("mzagglom", settingsPos, MSlist=MSlist.pos)
       message(" +", appendLF = FALSE)
     }
     if(neg){
-      MSlist.neg <- mzagglom(MSlist.neg,dmzgap=10,ppm=TRUE,drtgap=500,minpeak=4,maxint=1E7)
+      #MSlist.neg <- mzagglom(MSlist.neg,dmzgap=10,ppm=TRUE,drtgap=500,minpeak=4,maxint=1E7)
+      MSlist.neg <- .call.fun.settings("mzagglom", settingsNeg, MSlist=MSlist.neg)
       message(" -", appendLF = FALSE)
     }
     message("", appendLF = TRUE)
@@ -92,11 +98,13 @@ batchPick <- function(files, outputDir, polarity = c("+", "-"), writeData = TRUE
     
     message("Step 3 - clustering", appendLF = FALSE)
     if(pos){
-      MSlist.pos<-mzclust(MSlist.pos,dmzdens=5,ppm=TRUE,drtdens=120,minpeak=4)      
+      #MSlist.pos<-mzclust(MSlist.pos,dmzdens=5,ppm=TRUE,drtdens=120,minpeak=4)
+      MSlist.pos <- .call.fun.settings("mzclust", settingsPos, MSlist=MSlist.pos)
       message(" +", appendLF = FALSE)
     }
     if(neg){
-      MSlist.neg<-mzclust(MSlist.neg,dmzdens=5,ppm=TRUE,drtdens=120,minpeak=4)
+      #MSlist.neg<-mzclust(MSlist.neg,dmzdens=5,ppm=TRUE,drtdens=120,minpeak=4)
+      MSlist.neg <- .call.fun.settings("mzclust", settingsNeg, MSlist=MSlist.neg)
       message(" -", appendLF = FALSE)
     }
     message("", appendLF = TRUE)
@@ -104,13 +112,15 @@ batchPick <- function(files, outputDir, polarity = c("+", "-"), writeData = TRUE
     
     message("Step 4 - picking", appendLF = FALSE)
     if(pos){
-      MSlist.pos<-mzpick(MSlist.pos, minpeak = 4, drtsmall = 50, drtfill = 10,  drttotal = 200, recurs = 4, 
-                         weight = 2, SB = 3, SN=2, minint = 1E4, maxint = 1e+07, ended = 2)
+      #MSlist.pos<-mzpick(MSlist.pos, minpeak = 4, drtsmall = 50, drtfill = 10,  drttotal = 200, recurs = 4, 
+      #                   weight = 2, SB = 3, SN=2, minint = 1E4, maxint = 1e+07, ended = 2)
+      MSlist.pos <- .call.fun.settings("mzpick", settingsPos, MSlist=MSlist.pos)
       message(" +", appendLF = FALSE)
     }
     if(neg){
-      MSlist.neg<-mzpick(MSlist.neg, minpeak = 4, drtsmall = 50, drtfill = 10,  drttotal = 200, recurs = 4, 
-                         weight = 2, SB = 3, SN=2, minint = 1E4, maxint = 1e+07, ended = 2)
+      #MSlist.neg<-mzpick(MSlist.neg, minpeak = 4, drtsmall = 50, drtfill = 10,  drttotal = 200, recurs = 4, 
+      #                   weight = 2, SB = 3, SN=2, minint = 1E4, maxint = 1e+07, ended = 2)
+      MSlist.neg <- .call.fun.settings("mzpick", settingsNeg, MSlist=MSlist.neg)
       message(" -", appendLF = FALSE)
     }
     message("", appendLF = TRUE)
