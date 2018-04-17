@@ -218,44 +218,8 @@ batchPickDIA <- function(files, outputDir, writeData = TRUE, writeList = TRUE, s
             sep="-")))
     # define settings specific for every scantype
     allTypes <- unique(scantype)
-
-    settings.sct <- list() # settings by scantype, named list by scantype name
-    settings.general <- settings # global settings
-    settings.general$scantypes <- NULL
-    for(st in allTypes)
-    {
-      settings.sct[[st]] <- settings.general
-    }
-    
-    if(!is.null(settings$scantypes))
-    {
-      types <- names(settings$scantypes)
-      types.regex <- glob2rx(types)
-      scanSettings <- sapply(types.regex, function(type.regex)
-      {
-        grepl(type.regex, allTypes)
-      })
-      rownames(scanSettings) <- allTypes
-      for(st in allTypes)
-      {
-        settingsMatch <- sum(scanSettings[st,])
-        # check if there is one and exactly one match for each scan type
-        if(settingsMatch == 0)
-           warning(paste0("Specific settings exist, but not for scantype ", st, "!"))
-        else if(settingsMatch > 1)
-          warning(paste0("More than one specific setting type matches for scantype ", st, "!"))
-        else
-        {
-          # overwrite the settings that are scantype-specific, leave the other settings untouched.
-          settingScanList <- types[[which(scanSettings[st,])]]
-          settingScan <- settings$scantypes[[settingScanList]]
-          # for(name in names(settingScan))
-          settings.sct[[st]][names(settingScan)] <- settingScan[names(settingScan)]
-        }
-           
-      }
-    }
-
+    # get settings by scantype
+    settings.sct <- .getScantypeSettings(allTypes, settings)
 
     # split the list of all scans (with data) by scantype
     d.tot <- split(d, scantype)
@@ -340,4 +304,50 @@ comprehensiveBatchPick <- function(...)
 {
 	message("This call is deprecated, the function is now called batchPickDIA!")
 	batchPickDIA(...)
+}
+
+
+.getScantypeSettings <- function(allTypes, settings)
+{
+  # define settings specific for every scantype
+
+  settings.sct <- list() # settings by scantype, named list by scantype name
+  settings.general <- settings # global settings
+  settings.general$scantypes <- NULL
+  for(st in allTypes)
+  {
+    settings.sct[[st]] <- settings.general
+  }
+  
+  # For every scantype, overwrite the general settings if a specific setting exists
+  if(!is.null(settings$scantypes))
+  {
+    types <- names(settings$scantypes)
+    types.regex <- glob2rx(types)
+    scanSettings <- sapply(types.regex, function(type.regex)
+    {
+      grepl(type.regex, allTypes)
+    })
+    rownames(scanSettings) <- allTypes
+    for(st in allTypes)
+    {
+      settingsMatch <- sum(scanSettings[st,])
+      # check if there is one and exactly one match for each scan type
+      if(settingsMatch == 0)
+        warning(paste0("Specific settings exist, but not for scantype ", st, "!"))
+      else if(settingsMatch > 1)
+        warning(paste0("More than one specific setting type matches for scantype ", st, "!"))
+      else
+      {
+        # overwrite the settings that are scantype-specific, leave the other settings untouched.
+        settingScanList <- types[[which(scanSettings[st,])]]
+        settingScan <- settings$scantypes[[settingScanList]]
+        # for(name in names(settingScan))
+        settings.sct[[st]][names(settingScan)] <- settingScan[names(settingScan)]
+      }
+      
+    }
+  }
+  
+  return(settings.sct)
 }
