@@ -76,7 +76,7 @@ combineReactions <- function(substances, reactions, sep=" ", omit.name="")
 #' @describeIn combineReactions
 #' 
 #' @export
-combineReactions.formula <- function(substances, reactions, sep=" ", omit.name="")
+combineReactions.formula <- function(substances, reactions, sep=" ", omit.name="", calculateMasses = TRUE, validate=FALSE)
 {
   par.peaks <- data.frame(formula = substances$formula, rt=0, into=0, stringsAsFactors = FALSE)
   rownames(par.peaks) <- substances$name
@@ -84,9 +84,9 @@ combineReactions.formula <- function(substances, reactions, sep=" ", omit.name="
   # this is a safeguard for the "parent" reaction where mass is zero, there the formula should be preserved
   # otherwise the "parents" are lost if only formula but not mass is used for combining reactions
   if("mass" %in% colnames(substances))
-  	par.peaks[substances$mass == 0, "formula"] <- "C0"
+    par.peaks[substances$mass == 0, "formula"] <- "C0"
   if("mass" %in% colnames(reactions))
- 	reactions[reactions$mass == 0, "formula"] <- "C0"
+    reactions[reactions$mass == 0, "formula"] <- "C0"
   
   # Use only the rows for which there is a formula entry
   par.peaks <- par.peaks[!is.na(par.peaks$formula) & (par.peaks$formula != ""),]
@@ -97,7 +97,7 @@ combineReactions.formula <- function(substances, reactions, sep=" ", omit.name="
   #reactions.comb <- consolidateReactions.formula(reactions)
   
   # generate table for Jen's functions
-
+  
   act <- reactions[!is.na(reactions$formula)& (reactions$formula != ""),]
   
   x <- act[,"name"]
@@ -124,13 +124,23 @@ combineReactions.formula <- function(substances, reactions, sep=" ", omit.name="
   for(k in 1:nrow(act)){
     for(j in 1:nrow(par.peaks)) {
       option.masses[j,k] <- add.formula(par.peaks[j,"formula"], act[k,"formula"])
-  }}
+    }}
   
   potential <- as.vector(as.matrix(option.masses))
   names(potential) <- as.vector(as.matrix(options))
   
   potential.comb <- data.frame(formula=potential, name=names(potential), stringsAsFactors = FALSE)
-  potential.comb <- convertFormulas(potential.comb)
+  
+  # validation: check if any element is below zero
+  if(validate)
+  {
+    invalid <- laply(potential.comb$formula, function(fo)
+      any(unlist(formulastring.to.list(fo)) < 0) )
+    potential.comb <- potential.comb[!invalid,,drop=FALSE]
+  }
+  
+  if(calculateMasses)
+    potential.comb <- convertFormulas(potential.comb)
   
   # Consolidate the reactions again such that multistep reactions are replaced by single-step reactions
   #potential.clean <- consolidateReactions(potential.comb)

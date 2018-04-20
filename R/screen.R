@@ -117,7 +117,8 @@ ppm <- function(mz, ppmlimit) (1e-6 * mz * ppmlimit)
 #' @param profiles a profiles container
 #' @param suspects A data frame that must contain a "mass" column. Additionally a "name" column is useful (though not formally required).
 #'  Optionally a "ret" column with a suspect retention time, in units of profile RT (most typically seconds)
-#' @param polarity "+" or "-", determining what mass to look for
+#' @param polarity "+" or "-", if the masses are neutral masses and [M+H]+ or [M-H]- should be calculated,
+#'  otherwise "" if the masses are already m/z values.
 #' @param ppmLimit Maximal ppm deviation from target mass
 #' @param rtLimit Maximal retention time deviation in units of profile RT (most typically seconds), or NULL or FALSE if 
 #' RT matching is not desired. Note this: If the rtLimit is specified positively (>0), RT must match. If rtLimit is specified
@@ -136,7 +137,7 @@ screenProfiles <- function(profiles, suspects, polarity = "+", ppmLimit = getOpt
   peaklist <- as.data.frame(profiles$index_prof)
   if(polarity == "+")
     potential$mass <- potential$mass + 1.0072
-  else 
+  else if(polarity == "-")
     potential$mass <- potential$mass - 1.0072
   
   

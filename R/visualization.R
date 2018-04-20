@@ -169,7 +169,17 @@ runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NUL
     })
     
     # pinned profiles download
-    output$exportPinned <- reactive({values$pinnedProfiles})
+    output$exportPinned <- reactive({
+      values$pinnedProfiles
+      })
+    
+    output$exportPinned <- downloadHandler(
+      filename = function() {
+        paste("pinned-", Sys.Date(), ".csv", sep="")
+      },
+      content = function(file) {
+        write.csv(values$pinnedProfiles, file)
+      })
     # pinned profiles table
     output$pinnedProfiles <- renderDataTable(values$pinnedProfiles)
     
