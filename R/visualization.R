@@ -49,7 +49,7 @@ readScantype <- function(x)
 #'
 #' @export
 runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NULL, spectra = NULL, addcols = 1, settings = getOption("RMassScreening"), 
-                      profiles = NULL, files = NULL, ...)
+                      profiles = NULL, files = NULL, plugins = list(), ...)
 {
   fe <- environment()
   values <- reactiveValues()
@@ -142,46 +142,6 @@ runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NUL
       })
     })
     
-    ### Pinned profiles list: 
-    # Pin profile button adds / removes profile ID from pin list
-    # pinnedProfiles data table lists mz/rt/profile ID of pinned profiles
-    # exportPinned exports that table as csv (WIP)
-    #### Pin profile button
-    observe({
-      input$pin
-      if(input$pin == 0)
-        return(c())
-      values$pinList <- isolate({
-        
-        prof <- input$profile
-        matchPos <- match(prof, values$pinList)
-        if(!is.na(matchPos))
-          li <- values$pinList[-matchPos]
-        else
-          li <- c(values$pinList, prof)
-        li
-      })
-    })
-    
-    observe({
-      hit <- which(tt.hits.all$profileIDs %in% values$pinList)
-      values$pinnedProfiles <- tt.hits.all[hit,c("profileIDs", "mass", "name", "dppm", "mz", "RT", "int"),drop=FALSE]
-    })
-    
-    # pinned profiles download
-    output$exportPinned <- reactive({
-      values$pinnedProfiles
-      })
-    
-    output$exportPinned <- downloadHandler(
-      filename = function() {
-        paste("pinned-", Sys.Date(), ".csv", sep="")
-      },
-      content = function(file) {
-        write.csv(values$pinnedProfiles, file)
-      })
-    # pinned profiles table
-    output$pinnedProfiles <- renderDataTable(values$pinnedProfiles)
     
   #   values$pinnedProfiles <- reactive({
   #     # find profile index in hits
@@ -564,9 +524,15 @@ runViewer <- function(totalTable, hits, timepoints, sampleGroups, patterns = NUL
       hitPeaks
     }, options=list(rownames=FALSE))
     
+    
+    ## process plugins
+    for(p in plugins)
+      p$server(se)
+    #globalTest <<- c(as.list(environment()), as.list(se))
+    
   }
   
-  runApp(shinyApp(ui = visualization.ui(colnames(tt.hits.all), profileList, sampleGroups), server = server), ...)
+  runApp(shinyApp(ui = visualization.ui(colnames(tt.hits.all), profileList, sampleGroups, plugins), server = server), ...)
 }
 
 
@@ -653,7 +619,13 @@ plotProfile <- function(profiles, profiles.all, hit, sampleGroups, selectedGroup
 # the main panel is separated into tabs:
 # * profile display (with subtabs: plot, data, RAMClust results)
 # * filter building (with sub-UIs for the filter types)
-visualization.ui <- function(filterCols, profileList, sampleGroups)
+visualization.ui <- function(filterCols, profileList, sampleGroups, plugins)
+{
+  # process all plugins
+  pluginsMainTab <- lapply(plugins, function(p) p$ui())
+  pluginsMainTab <- unlist(pluginsMainTab, recursive = FALSE)
+  for(i in seq_along(pluginsMainTab))
+    class(pluginsMainTab) <- "shiny.tag"
   
   fluidPage(
   sidebarLayout(
@@ -724,12 +696,8 @@ visualization.ui <- function(filterCols, profileList, sampleGroups)
                                        tabPanel("Order", value="order", orderTab(filterCols)),
                                        tabPanel("Literal", value="literalFilter", literalFilterTab(filterCols))
                            )),
-                tabPanel("Pinned", value="pinned",
-                         dataTableOutput("pinnedProfiles"),
-                         #textOutput("pinList"),
-                         downloadButton("exportPinned", "Export")#,
-                         #actionButton("importPinned", "Import")
-                         )
+                 pluginsMainTab
                            ))
   )
 )
+}
