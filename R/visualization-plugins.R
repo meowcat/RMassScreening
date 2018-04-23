@@ -1,6 +1,6 @@
 
 
-pinPlugin <- list(
+pluginPinProfile <- list(
   server = function(env)
   {
     with(env, {
@@ -47,16 +47,18 @@ pinPlugin <- list(
     })
     
   },
+  
   ui = function()
   {
-    message("Pinned UI was run")
-    return(
-    tabPanel("Pinned", value="pinned",
+    list(
+      mainTab = tabPanel("Pinned", value="pinned",
              dataTableOutput("pinnedProfiles"),
              #textOutput("pinList"),
              downloadButton("exportPinned", "Export")#,
              #actionButton("importPinned", "Import")
-    )
+            ),
+      visualizeTab = NULL,
+      sidebar = NULL
     )
   }
 

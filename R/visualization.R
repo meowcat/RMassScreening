@@ -622,11 +622,27 @@ plotProfile <- function(profiles, profiles.all, hit, sampleGroups, selectedGroup
 visualization.ui <- function(filterCols, profileList, sampleGroups, plugins)
 {
   # process all plugins
-  pluginsMainTab <- lapply(plugins, function(p) p$ui())
-  pluginsMainTab <- unlist(pluginsMainTab, recursive = FALSE)
-  for(i in seq_along(pluginsMainTab))
-    class(pluginsMainTab) <- "shiny.tag"
+  pluginsUI <- lapply(plugins, function(p) {
+    p$ui()
+  })
+  # regroup by visual sections instead of plugin name
+  pUIsections <- list()
+  for(p in pluginsUI)
+  {
+    for(section in names(p))
+      pUIsections[[section]] <- c(pUIsections[[section]], list(p[[section]]))
+  }
   
+  # For every visual element added by a plugin, "unlist" it and make it "shiny.tag"
+  pUIsections <- lapply(pUIsections, function(element)
+  {
+    element <- unlist(element, recursive = FALSE)
+    for(i in seq_along(element))
+      class(element) <- "shiny.tag"
+
+    element
+  })
+
   fluidPage(
   sidebarLayout(
     sidebarPanel(
@@ -651,7 +667,8 @@ visualization.ui <- function(filterCols, profileList, sampleGroups, plugins)
                        fluidRow(
                          column(12, fileInput("filterLoad", "load"))
                        )
-      )
+      ),
+      pUIsections$sidebar
     ),
     mainPanel(
       tabsetPanel(id="tab",
@@ -671,22 +688,23 @@ visualization.ui <- function(filterCols, profileList, sampleGroups, plugins)
                              ,
                              tabPanel("spectra",
                                       verticalLayout(
-										fluidRow(column(width=4,
-												selectInput("spectraSelect", label="Spectrum:", choices=NULL)),
-										column(width=6,
-												selectInput("targetSelect", label="Target:", choices=NULL)
-												)),
-										fluidRow(
-												column(width=4, actionButton("targetAnalyze", "Analyze spectra")),
-												column(width=6, textInput("targetFormula", label="Formula", value=""))
-										),
-								
+                                        fluidRow(column(width=4,
+                                                        selectInput("spectraSelect", label="Spectrum:", choices=NULL)),
+                                                 column(width=6,
+                                                        selectInput("targetSelect", label="Target:", choices=NULL)
+                                                 )),
+                                        fluidRow(
+                                          column(width=4, actionButton("targetAnalyze", "Analyze spectra")),
+                                          column(width=6, textInput("targetFormula", label="Formula", value=""))
+                                        ),
+                                        
                                         plotOutput("spectrumPlot"),
                                         dataTableOutput("spectrumTable")
+                                      )
                              )
-                            )
-                             )
-                            )
+                           ),
+										pUIsections$visualizeTab
+                  )
                            
                            ,
                   tabPanel("Build filter", value="buildFilter",
@@ -696,7 +714,7 @@ visualization.ui <- function(filterCols, profileList, sampleGroups, plugins)
                                        tabPanel("Order", value="order", orderTab(filterCols)),
                                        tabPanel("Literal", value="literalFilter", literalFilterTab(filterCols))
                            )),
-                 pluginsMainTab
+										pUIsections$mainTab
                            ))
   )
 )
