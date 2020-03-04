@@ -1,3 +1,6 @@
+#' @import depRec
+#' 
+NULL
 
 #' Fill enviMass profiles from picked files
 #' 
@@ -168,13 +171,13 @@ computeProfiles <- function(profiles, dmass=3, dret=60)
 		return(profiles)
 	}
 	
-  profiles<-agglomer(
+  profiles<-depRec::agglomer(
     profiles,
     dmass=dmass,
     ppm=TRUE,
     dret=dret
   )
-  profiles<-partcluster(
+  profiles<-depRec::partcluster(
     profiles,
     dmass=dmass,
     ppm=TRUE,

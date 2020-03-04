@@ -16,4 +16,4 @@ Depends:
     RAMClustR,
     plyr,
     reshape2
-RoxygenNote: 6.0.1
+RoxygenNote: 7.0.2
