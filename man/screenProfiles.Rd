@@ -4,21 +4,35 @@
 \alias{screenProfiles}
 \title{Screen for suspect masses in a profile container.}
 \usage{
-screenProfiles(profiles, suspects, polarity = "+",
-  ppmLimit = getOption("RMassScreening")$screenProfiles$ppmLimit)
+screenProfiles(
+  profiles,
+  suspects,
+  polarity = "+",
+  ppmLimit = getOption("RMassScreening")$screenProfiles$ppmLimit,
+  rtLimit = getOption("RMassScreening")$screenProfiles$rtLimit
+)
 }
 \arguments{
 \item{profiles}{a profiles container}
 
-\item{suspects}{A data frame that must contain a "mass" column. Additionally a "name" column is useful (though not formally required)}
+\item{suspects}{A data frame that must contain a "mass" column. Additionally a "name" column is useful (though not formally required).
+Optionally a "ret" column with a suspect retention time, in units of profile RT (most typically seconds)}
 
-\item{polarity}{"+" or "-", determining what mass to look for}
+\item{polarity}{"+" or "-", if the masses are neutral masses and [M+H]+ or [M-H]- should be calculated,
+otherwise "" if the masses are already m/z values.}
 
 \item{ppmLimit}{Maximal ppm deviation from target mass}
+
+\item{rtLimit}{Maximal retention time deviation in units of profile RT (most typically seconds), or NULL or FALSE if 
+RT matching is not desired. Note this: If the rtLimit is specified positively (>0), RT must match. If rtLimit is specified
+negatively (<0), RT must either match or be NA in the suspect list.
+
+If suspects$ret is specified but rtLimit is NULL, the dRT is calculated but not used for filtering.
+Note: rtLimit is NULL in the default settings to preserve backwards compatibility.}
 }
 \description{
 Simple screening looking for suspect exact masses in enviMass profiles.
 }
 \details{
-Could be improved.
+Could still be improved, even though it's better than before.
 }

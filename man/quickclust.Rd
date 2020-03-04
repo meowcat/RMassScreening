@@ -4,8 +4,15 @@
 \alias{quickclust}
 \title{Quick RAMClustR application}
 \usage{
-quickclust(profileID, profiles, rttol = 60, raw = FALSE,
-  profileMatrix = NULL, sr = 0.5, st = 25)
+quickclust(
+  profileID,
+  profiles,
+  rttol = 60,
+  raw = FALSE,
+  profileMatrix = NULL,
+  sr = 0.5,
+  st = 25
+)
 }
 \arguments{
 \item{profileID}{The profile you want to look up (integer)}

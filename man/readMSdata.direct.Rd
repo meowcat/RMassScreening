@@ -4,8 +4,15 @@
 \alias{readMSdata.direct}
 \title{readMSdata.direct}
 \usage{
-readMSdata.direct(mz1, MSlevel = c(1), progbar = FALSE, minRT = FALSE,
-  maxRT = FALSE, minmz = FALSE, maxmz = FALSE)
+readMSdata.direct(
+  mz1,
+  MSlevel = c(1),
+  progbar = FALSE,
+  minRT = FALSE,
+  maxRT = FALSE,
+  minmz = FALSE,
+  maxmz = FALSE
+)
 }
 \arguments{
 \item{mz1}{mzXML raw object to extract from (as read by \link{readMzXmlFile})}

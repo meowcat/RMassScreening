@@ -4,8 +4,13 @@
 \alias{fillProfiles}
 \title{Fill enviMass profiles from picked files}
 \usage{
-fillProfiles(dataDir, files, polarity = "+", pattern = NA,
-  rtrange = c(-Inf, Inf))
+fillProfiles(
+  dataDir,
+  files,
+  polarity = "+",
+  pattern = NA,
+  rtrange = c(-Inf, Inf)
+)
 }
 \arguments{
 \item{dataDir}{Folder containing the enviPick files in .MSlist format. May be either MSlist.pos and MSlist.neg files, or files with an arbitrary pattern.
@@ -13,7 +18,7 @@ Typically, filenames should correspond to the names built by \link{batchPick} or
 * If only MS1 data was peak-picked (\link{batchPick}), raw file \code{FILENAME.mzXML} should give filenames \code{FILENAME.mzXML.MSlist.pos.RData}
 (or \code{neg}, respectively) if only MS1 were picked
 * If DIA data was picked (\code{\link{comprehensiveBatchPick}}) a raw file \code{FILENAME.mzXML} should give filenames:
-* \code{FILENAME.mzXML.MSlist.1-pos--} for the MS1 positive
+* \verb{FILENAME.mzXML.MSlist.1-pos--} for the MS1 positive
 * e.g. \code{FILENAME.mzXML.MSlist.2-neg-200-100} for MS2-DIA, negative, center mass 200, isolation width 100 etc.
 However other patterns work too, since \code{pattern} specifies which file pattern is searched.}
 

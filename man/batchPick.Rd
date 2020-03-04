@@ -6,13 +6,26 @@
 \alias{comprehensiveBatchPick}
 \title{Batch pick raw mzXML files}
 \usage{
-batchPick(files, outputDir, polarity = c("+", "-"), writeData = TRUE,
-  writeList = TRUE, settings = getOption("RMassScreening")$enviPick,
-  multicore = FALSE, log = "logCluster.txt")
+batchPick(
+  files,
+  outputDir,
+  polarity = c("+", "-"),
+  writeData = TRUE,
+  writeList = TRUE,
+  settings = getOption("RMassScreening")$enviPick,
+  multicore = FALSE,
+  log = "logCluster.txt"
+)
 
-batchPickDIA(files, outputDir, writeData = TRUE, writeList = TRUE,
-  settings = getOption("RMassScreening")$enviPick, multicore = FALSE,
-  log = "logCluster.txt")
+batchPickDIA(
+  files,
+  outputDir,
+  writeData = TRUE,
+  writeList = TRUE,
+  settings = getOption("RMassScreening")$enviPick,
+  multicore = FALSE,
+  log = "logCluster.txt"
+)
 
 comprehensiveBatchPick(...)
 }
@@ -49,7 +62,7 @@ Warning: \code{batchPick} doesn't actually use the \code{settings} at all! only 
 \code{RAWFILE.mzXML.MSlist.pos.RData} for positive mode, or \code{.neg.RData} for negative mode respectively.  For \code{writeList}, the files are \code{.csv} instead.
 
 For \code{batchPickDIA}, the file names follow the pattern \code{RAWFILE.mzXML.MSlist.LEVEL-POLARITY-CENTER-WIDTH.RData}. For the MS1 scans,
-this is e.g. \code{1-pos--} because there is no isolation center or isolation width. For the MS2 scans, a positive scan with center 400 and isolation width
+this is e.g. \verb{1-pos--} because there is no isolation center or isolation width. For the MS2 scans, a positive scan with center 400 and isolation width
 200 would have \code{2-pos-400-200} in the name.
 
 For legacy reasons, \code{batchPick} produces the objects \code{MSlist.pos} and \code{MSlist.neg} respectively, whereas \code{batchPickDIA}

@@ -4,9 +4,20 @@
 \alias{runViewer}
 \title{Run the results viewer}
 \usage{
-runViewer(totalTable, hits, timepoints, sampleGroups, patterns = NULL,
-  spectra = NULL, addcols = 1, settings = getOption("RMassScreening"),
-  profiles = NULL, files = NULL, ...)
+runViewer(
+  totalTable,
+  hits,
+  timepoints,
+  sampleGroups,
+  patterns = NULL,
+  spectra = NULL,
+  addcols = 1,
+  settings = getOption("RMassScreening"),
+  profiles = NULL,
+  files = NULL,
+  plugins = list(),
+  ...
+)
 }
 \arguments{
 \item{totalTable}{}

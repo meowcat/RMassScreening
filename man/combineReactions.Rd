@@ -7,7 +7,14 @@
 \usage{
 combineReactions(substances, reactions, sep = " ", omit.name = "")
 
-combineReactions.formula(substances, reactions, sep = " ", omit.name = "")
+combineReactions.formula(
+  substances,
+  reactions,
+  sep = " ",
+  omit.name = "",
+  calculateMasses = TRUE,
+  validate = FALSE
+)
 }
 \arguments{
 \item{substances}{Data frame with column \code{name} and mandatory column \code{mass} (\code{combineReactions}) or \code{formula}  (\code{combineReactions.formula}).}
@@ -22,7 +29,7 @@ Expects two data frames with columns mass, name. Combines}
 }
 \description{
 \code{combineReactions} applies \code{reactions} specified as mass differences to \code{substances} specified as exact masses.
-\code{combineReactions.formula} applies \code{reactions} specified as formula differences (e.g. \code{C2H-2O1}) to
+\code{combineReactions.formula} applies \code{reactions} specified as formula differences (e.g. \verb{C2H-2O1}) to
 \code{substances} specified as chemical formulas.
 }
 \details{
