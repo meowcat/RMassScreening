@@ -134,7 +134,7 @@ screenProfiles <- function(profiles, suspects, polarity = "+", ppmLimit = getOpt
   if(is.null(ppmLimit))
     stop("No ppm limit specified. Specify either as a parameter or in your settings file.")
   potential <- suspects
-  peaklist <- as.data.frame(profiles$index_prof)
+  peaklist <- as_tibble(profiles$index_prof)
   if(polarity == "+")
     potential$mass <- potential$mass + 1.0072
   else if(polarity == "-")
@@ -144,33 +144,30 @@ screenProfiles <- function(profiles, suspects, polarity = "+", ppmLimit = getOpt
   potential$X <- NULL
   ppmMax <- ppmLimit
   
-  hits <- lapply(1:nrow(potential), function(n)
-  {
-    mass <- potential$mass[[n]]
-    dppm <- ((peaklist$mean_mz / mass) - 1) * 1e6
-    hit <- peaklist[abs(dppm) < ppmMax,c("profile_ID", "mean_mz", "mean_RT", "mean_int"),drop=FALSE]
-    colnames(hit) <- c("profileID", "mz", "RT", "int")
-    #ppmShort <- dppm[abs(dppm) < ppmMax]
-    df <- cbind(potential[rep(n, nrow(hit)),,drop=FALSE], hit)
-    
-  })
-  
-  hits.total <- do.call(rbind, hits)
+  hits.total <- potential %>% rowwise() %>% group_split() %>%
+    map_dfr( function(row) {
+      peaklist %>% 
+        left_join(row, by=character()) %>%
+        mutate(dppm = (mean_mz / mass - 1) * 1e6) %>%
+        filter(abs(dppm) < ppmMax) %>%
+        select(profileID = profile_ID, mz = mean_mz,
+               RT = mean_RT, int = mean_int, colnames(row))
+        
+    })
+      
   hits.total$dppm <- (hits.total$mz/hits.total$mass -1) * 1e6
   
-  # IF 
-  if(!is.null(hits.total$ret))
+  # Is an RT in the suspect list set? 
+  if("ret" %in% colnames(hits.total))
   {
-    hits.total$dRT <- (hits.total$RT-hits.total$ret)
-    if(!is.null(rtLimit) )
-    {
-      # match strictly (NA not ok) or loosely (NA ok)?
-      # if rtLimit sign is 1, rtStrict is TRUE i.e. RT MUST match and NA is not ok.
-      rtStrict <- (sign(rtLimit) == 1)
-      
-      hits.total <- hits.total[(!is.na(hits.total$dRT) | !rtStrict),,drop=FALSE]
-      hits.total <- hits.total[(is.na(hits.total$dRT)) | (abs(hits.total$dRT) < abs(rtLimit)),,drop=FALSE]
-    }
+    rtStrict <- (sign(rtLimit) == 1)
+    
+    hits.total <- hits.total %>% 
+      mutate(dRT = RT - ret) %>%
+      filter(
+        (abs(dRT) < abs(rtLimit)) |
+        (is.na(dRT) & !rtStrict)
+      )
   }
   
   return(hits.total)
